@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
-import { insertArtistApplication } from "@/lib/supabase-data";
+import { supabase } from "@/lib/supabase";
 
 const categories = [
   "Stand-up Comedy",
@@ -66,42 +66,61 @@ export function ArtistRegistrationModal({
     setServerError(null);
     setSending(true);
 
-    const rate = Number(form.rate) || 0;
+    const fullName = form.fullName || "";
+    const stageName = form.stageName || "";
+    const slugBase = (stageName || fullName || "artist")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-");
+
+    const payload = {
+      id: slugBase || `artist-${Date.now()}`,
+      name: fullName || "",
+      stage_name: stageName || null,
+      category: form.category || "General",
+      location: form.location || "Patna",
+      travel_availability: form.travelAvailability || null,
+      rate: Number(form.rate) || 0,
+      description: form.bio || null,
+      portfolio_links: form.portfolioLinks || null,
+      contact_email: form.contactEmail || null,
+      contact_phone: form.contactPhone || null,
+      availability_status: "pending",
+    };
+
+    if (!supabase) {
+      setSending(false);
+      setServerError(
+        "Supabase is not configured. Your application could not be saved.",
+      );
+      return;
+    }
 
     try {
-      const result = await insertArtistApplication({
-        fullName: form.fullName,
-        stageName: form.stageName,
-        category: form.category,
-        location: form.location,
-        travelAvailability: form.travelAvailability,
-        rate,
-        bio: form.bio,
-        portfolioLinks: form.portfolioLinks,
-        contactEmail: form.contactEmail,
-        contactPhone: form.contactPhone,
-      });
+      const { error } = await supabase.from("artists").insert([payload]);
 
-      if (result.success) {
-        resetForm();
-        setSubmitted(true);
-      } else {
+      if (error) {
         setSending(false);
-        const raw = result.error ?? null;
-        let message = "We could not save your application. Please try again.";
-        if (raw && typeof raw === "object") {
-          const err = raw as { message?: string; code?: string };
-          if (err.code === "23505") {
-            message =
-              "An artist with this name already exists. Please use a different stage name.";
-          } else if (err.message) {
-            message = err.message;
-          }
+        console.error("[supabase] artist insert error:", error);
+        let message =
+          "We could not save your application. Please try again.";
+        if (error.code === "23505") {
+          message =
+            "An artist with this name already exists. Please use a different stage name.";
+        } else if (error.message) {
+          message = error.message;
         }
         setServerError(message);
+        return;
       }
+
+      resetForm();
+      setSubmitted(true);
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (error) {
       setSending(false);
+      console.error("[supabase] artist insert exception:", error);
       const message =
         error instanceof Error ? error.message : "An unexpected error occurred.";
       setServerError(message);
