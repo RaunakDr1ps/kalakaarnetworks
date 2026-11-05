@@ -55,6 +55,210 @@ export interface SupabaseBooking {
   created_at: string | null;
 }
 
+/* ------------------------------------------------------------------ */
+/* Profiles / Auth types                                                */
+/* ------------------------------------------------------------------ */
+
+export type UserRole = "admin" | "manager" | "artist";
+
+export interface SupabaseProfile {
+  id: string;
+  email: string | null;
+  role: UserRole;
+  full_name: string | null;
+  created_at: string | null;
+}
+
+export interface AuthSession {
+  user: {
+    id: string;
+    email: string | null;
+  } | null;
+  profile: SupabaseProfile | null;
+  isAuthenticated: boolean;
+  isAdmin: boolean;
+  isManager: boolean;
+  isArtist: boolean;
+}
+
+/* Demo profiles used when Supabase is not configured. */
+export const mockProfiles: SupabaseProfile[] = [
+  {
+    id: "00000000-0000-0000-0000-000000000001",
+    email: "aarav@kalakaarstudios.in",
+    role: "admin",
+    full_name: "Aarav Sinha",
+    created_at: "2026-11-01T00:00:00Z",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000002",
+    email: "devansh@kalakaarstudios.in",
+    role: "manager",
+    full_name: "Devansh Sinha",
+    created_at: "2026-11-01T00:00:00Z",
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000003",
+    email: "ananya@kalakaarstudios.in",
+    role: "artist",
+    full_name: "Ananya Rao",
+    created_at: "2026-11-01T00:00:00Z",
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/* Auth helpers                                                         */
+/* ------------------------------------------------------------------ */
+
+export async function signInWithPassword(email: string, password: string) {
+  if (!isSupabaseConfigured || !supabase) {
+    // Demo fallback: accept known credentials
+    const demoUsers: Record<string, { role: UserRole; fullName: string }> = {
+      "aarav@kalakaarstudios.in": { role: "admin", fullName: "Aarav Sinha" },
+      "devansh@kalakaarstudios.in": { role: "manager", fullName: "Devansh Sinha" },
+      "ananya@kalakaarstudios.in": { role: "artist", fullName: "Ananya Rao" },
+    };
+    const user = demoUsers[email.toLowerCase()];
+    if (user && password === "kalakaar2026") {
+      return {
+        success: true,
+        session: {
+          user: { id: "00000000-0000-0000-0000-00000000000" + email.charCodeAt(0).toString(16), email },
+          profile: mockProfiles.find((p) => p.email === email) ?? null,
+          isAuthenticated: true,
+          isAdmin: user.role === "admin",
+          isManager: user.role === "manager",
+          isArtist: user.role === "artist",
+        },
+        error: null,
+      };
+    }
+    return { success: false, session: null, error: new Error("Invalid credentials") };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      return { success: false, session: null, error };
+    }
+
+    let profile: SupabaseProfile | null = null;
+    if (data.user) {
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", data.user.id)
+        .single();
+      if (!profileError && profileData) {
+        profile = profileData as SupabaseProfile;
+      }
+    }
+
+    return {
+      success: true,
+      session: {
+        user: data.user ? { id: data.user.id, email: data.user.email } : null,
+        profile,
+        isAuthenticated: !!data.user,
+        isAdmin: profile?.role === "admin",
+        isManager: profile?.role === "manager",
+        isArtist: profile?.role === "artist",
+      },
+      error: null,
+    };
+  } catch (error) {
+    return { success: false, session: null, error };
+  }
+}
+
+export async function signOut() {
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: true, error: null };
+  }
+  try {
+    const { error } = await supabase.auth.signOut();
+    return { success: !error, error };
+  } catch (error) {
+    return { success: false, error };
+  }
+}
+
+export async function fetchProfile(userId: string): Promise<SupabaseProfile | null> {
+  if (!isSupabaseConfigured || !supabase) {
+    return mockProfiles.find((p) => p.id === userId) ?? null;
+  }
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+    if (error) {
+      console.warn("[supabase] profile fetch failed", error);
+      return null;
+    }
+    return data as SupabaseProfile;
+  } catch (error) {
+    console.warn("[supabase] profile fetch error", error);
+    return null;
+  }
+}
+
+export async function fetchProfiles(): Promise<SupabaseProfile[]> {
+  if (!isSupabaseConfigured || !supabase) {
+    return mockProfiles;
+  }
+  try {
+    const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: true });
+    if (error) {
+      console.warn("[supabase] profiles fetch failed", error);
+      return mockProfiles;
+    }
+    return (data ?? []) as SupabaseProfile[];
+  } catch (error) {
+    console.warn("[supabase] profiles fetch error", error);
+    return mockProfiles;
+  }
+}
+
+export async function updateProfileRole(userId: string, role: UserRole) {
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: true, error: null, source: "mock" as const };
+  }
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ role })
+      .eq("id", userId)
+      .select()
+      .single();
+    return { success: !error, data, error };
+  } catch (error) {
+    return { success: false, data: null, error };
+  }
+}
+
+export async function inviteTeamMember(email: string, role: UserRole) {
+  /* In a production app this would trigger a Supabase Auth invite flow.
+     For the demo we create a placeholder profile so the team UI works offline. */
+  if (!isSupabaseConfigured || !supabase) {
+    const profile: SupabaseProfile = {
+      id: `invite-${Date.now()}`,
+      email,
+      role,
+      full_name: null,
+      created_at: new Date().toISOString(),
+    };
+    return { success: true, data: profile, error: null, source: "mock" as const };
+  }
+  try {
+    const { data, error } = await supabase.auth.admin.inviteUserByEmail(email);
+    return { success: !error, data, error };
+  } catch (error) {
+    return { success: false, data: null, error };
+  }
+}
+
 /* Demo bookings used when Supabase is not configured. Mirrors the mock
    enquiries/requests so the dashboards remain populated offline. */
 export const mockBookings: SupabaseBooking[] = [

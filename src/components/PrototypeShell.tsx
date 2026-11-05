@@ -22,7 +22,7 @@ export function PrototypeShell() {
         {view === "client" && <ClientView />}
         {view === "artist" && <ArtistView onClientView={() => changeView("client")} />}
         {view === "customer" && <CustomerDashboard onClientView={() => changeView("client")} />}
-        {view === "admin" && <AdminDashboard onClientView={() => changeView("client")} />}
+        {view === "admin" && <AdminDashboard onClientView={() => changeView("client")} session={null} />}
       </div>
     </>
   );

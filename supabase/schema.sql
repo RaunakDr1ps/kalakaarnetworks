@@ -55,6 +55,27 @@ create policy "Public read venues" on venues for select using (true);
 create policy "Public read bookings" on bookings for select using (true);
 create policy "Public insert bookings" on bookings for insert with check (true);
 
+-- Profiles table for Supabase Auth + Role-Based Access Control
+create table if not exists profiles (
+  id uuid primary key references auth.users on delete cascade,
+  email text,
+  role text check (role in ('admin', 'manager', 'artist')) default 'artist',
+  full_name text,
+  created_at timestamptz default now()
+);
+
+alter table profiles enable row level security;
+
+create policy "Public read profiles" on profiles for select using (true);
+create policy "Users can update own profile" on profiles for update using (auth.uid() = id);
+
+-- Seed profiles for demo team members
+insert into profiles (id, email, role, full_name) values
+  ('00000000-0000-0000-0000-000000000001', 'aarav@kalakaarstudios.in', 'admin', 'Aarav Sinha'),
+  ('00000000-0000-0000-0000-000000000002', 'devansh@kalakaarstudios.in', 'manager', 'Devansh Sinha'),
+  ('00000000-0000-0000-0000-000000000003', 'ananya@kalakaarstudios.in', 'artist', 'Ananya Rao')
+on conflict (id) do nothing;
+
 -- Seed data mirroring the demo roster (run once after creating the tables)
 insert into artists (id, name, stage_name, category, location, travel_availability, rate, description, portfolio_links, contact_email, contact_phone, availability_status) values
   ('ananya-rao', 'Ananya Rao', null, 'Comedy', 'Patna', 'Patna, Ranchi', 180000, 'Sharp, bilingual stand-up about small-town ambition.', null, 'ananya@example.com', '+91 98765 43210', 'pending'),

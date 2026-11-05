@@ -1345,3 +1345,213 @@ h4 {
     display: flex;
   }
 }
+
+/* ---------- admin login page & modal ---------- */
+
+.admin-login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - var(--demo-height));
+  padding: 32px;
+}
+
+.admin-login-modal__head {
+  margin-bottom: 24px;
+}
+
+.admin-login-modal__head .eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--marigold);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.admin-login-modal__head h2 {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0 0 8px;
+  letter-spacing: 0.01em;
+}
+
+.admin-login-modal__head p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.admin-login-modal__error {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--brick);
+  background: rgba(168, 52, 42, 0.12);
+  color: var(--brick);
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-login-modal__hint {
+  margin-top: 16px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ---------- admin page header ---------- */
+
+.admin-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 32px;
+}
+
+.admin-page__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-page__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-page__brand .eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--marigold);
+  margin: 0;
+}
+
+.admin-page__brand h1 {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+.admin-page__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.admin-page__role {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border: 1px solid rgba(18, 19, 15, 0.2);
+  border-radius: 3px;
+  color: var(--ink);
+}
+
+/* ---------- team roles panel ---------- */
+
+.team-roles-panel {
+  margin-top: 24px;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 3px;
+  border: 1px solid rgba(18, 19, 15, 0.2);
+  color: var(--ink);
+}
+
+.role-badge--admin {
+  background: rgba(18, 19, 15, 0.1);
+}
+
+.role-badge--manager {
+  background: rgba(217, 143, 52, 0.1);
+}
+
+.role-badge--artist {
+  background: rgba(119, 135, 93, 0.1);
+}
+
+/* ---------- team modal ---------- */
+
+.team-modal {
+  max-width: 700px;
+}
+
+.team-modal .eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--marigold);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.team-modal h2 {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  margin: 0 0 8px;
+  letter-spacing: 0.01em;
+}
+
+.team-modal p {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+.team-modal .form-grid {
+  gap: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.team-list {
+  margin-top: 20px;
+  border-top: 1px solid var(--line-soft);
+  padding-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .admin-page {
+    padding: 16px 20px;
+  }
+
+  .admin-page__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .admin-page__user {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

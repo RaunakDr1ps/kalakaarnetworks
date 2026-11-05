@@ -13,7 +13,7 @@ import {
   venueRequests,
   type Artist,
 } from "@/data/mock";
-import { fetchArtists } from "@/lib/supabase-data";
+import { fetchArtists, fetchProfiles, updateProfileRole, type SupabaseProfile, type AuthSession, type UserRole } from "@/lib/supabase-data";
 import { monthMatrix, monthNames, weekdayLabels } from "@/lib/date";
 import { DashboardShell } from "./DashboardShell";
 import { Icon } from "@/components/ui/Icon";
@@ -30,7 +30,13 @@ const navItems = [
 
 type RequestFilter = "All" | "New" | "Reviewing" | "Approved";
 
-export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
+export function AdminDashboard({
+  onClientView,
+  session = null,
+}: {
+  onClientView: () => void;
+  session: AuthSession | null;
+}) {
   const [requestFilter, setRequestFilter] = useState<RequestFilter>("All");
   const [requestState, setRequestState] = useState<Record<string, string>>(
     () => Object.fromEntries(venueRequests.map((request) => [request.id, request.status]))
@@ -49,15 +55,29 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
     () => new Set(publicEvents.map((event) => event.id))
   );
   const [toast, setToast] = useState<string | null>(null);
+  const [teamTab, setTeamTab] = useState(false);
+  const [profiles, setProfiles] = useState<SupabaseProfile[]>([]);
+  const [editingRole, setEditingRole] = useState<{ id: string; role: UserRole } | null>(null);
+  const [roleSaving, setRoleSaving] = useState(false);
+
+  const userRole = session?.profile?.role ?? "artist";
+  const isAdmin = userRole === "admin";
+  const isManager = userRole === "manager";
 
   useEffect(() => {
     let cancelled = false;
-    fetchArtists().then((fetched) => {
+    const load = async () => {
+      const [fetchedArtists, fetchedProfiles] = await Promise.all([
+        fetchArtists(),
+        fetchProfiles(),
+      ]);
       if (!cancelled) {
-        setArtists(fetched);
-        if (fetched.length > 0) setAssignArtist(fetched[0].id);
+        setArtists(fetchedArtists);
+        setProfiles(fetchedProfiles);
+        if (fetchedArtists.length > 0) setAssignArtist(fetchedArtists[0].id);
       }
-    });
+    };
+    load();
     return () => {
       cancelled = true;
     };
@@ -79,11 +99,13 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
   });
 
   const setRequest = (id: string, status: string, message: string) => {
+    if (!isAdmin && !isManager) return;
     setRequestState((current) => ({ ...current, [id]: status }));
     setToast(message);
   };
 
   const confirmAssignment = () => {
+    if (!isAdmin) return;
     if (!assigning) return;
     const artist = artists.find((item) => item.id === assignArtist);
     setRequestState((current) => ({ ...current, [assigning.id]: "Reviewing" }));
@@ -101,6 +123,7 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
   };
 
   const toggleListed = (id: string) => {
+    if (!isAdmin) return;
     setListed((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
@@ -110,8 +133,30 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
   };
 
   const leadAction = (id: string, status: string, message: string) => {
+    if (!isAdmin && !isManager) return;
     setLeadState((current) => ({ ...current, [id]: status }));
     setToast(message);
+  };
+
+  const handleRoleChange = (id: string, role: string) => {
+    if (!isAdmin) return;
+    setEditingRole({ id, role: role as "admin" | "manager" | "artist" });
+  };
+
+  const saveRole = async () => {
+    if (!editingRole) return;
+    setRoleSaving(true);
+    const result = await updateProfileRole(editingRole.id, editingRole.role as "admin" | "manager" | "artist");
+    setRoleSaving(false);
+    if (result.success) {
+      setProfiles((current) =>
+        current.map((p) => (p.id === editingRole.id ? { ...p, role: editingRole.role } : p))
+      );
+      setToast(`Role updated to ${editingRole.role}.`);
+    } else {
+      setToast("Failed to update role.");
+    }
+    setEditingRole(null);
   };
 
   const maxRevenue = 24;
@@ -120,14 +165,27 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
     <DashboardShell
       role="Admin"
       workspace="Control room"
-      userName="Aarav Sinha"
-      userMeta="Studio director"
-      initials="AS"
-      navItems={navItems}
+      userName={session?.profile?.full_name || "Studio User"}
+      userMeta={`${userRole.charAt(0).toUpperCase() + userRole.slice(1)} · Kalakaar Studios`}
+      initials={session?.profile?.full_name?.split(" ").map((n) => n[0]).join("") || "SS"}
+      navItems={[
+        ...navItems,
+        ...(isAdmin ? [{ label: "Team & Roles", href: "#team-roles", icon: "users" as const, badge: profiles.length.toString() }] : []),
+      ]}
       current="Overview"
       onClientView={onClientView}
-      topRight={<span className="top-status top-status--admin"><i /> All systems live</span>}
+      topRight={
+        <>
+          <span className="top-status top-status--admin">
+            <i /> {session?.profile?.role}
+          </span>
+          <button type="button" className="text-link text-link--small" onClick={() => setTeamTab(true)}>
+            Manage Team
+          </button>
+        </>
+      }
     >
+      {session && <AdminSessionGate session={session} />}
       <div className="dash-page" id="admin-overview">
         <div className="dash-page-head">
           <div>
@@ -349,17 +407,20 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
                                 type="button"
                                 className="button button--ink button--tiny"
                                 onClick={() => setRequest(request.id, "Approved", `${request.id} approved. Contract draft queued.`)}
+                                disabled={!isAdmin && !isManager}
                               >
                                 Approve
                               </button>
-                              <button
-                                type="button"
-                                className="icon-button"
-                                aria-label={`Assign artist to ${request.id}`}
-                                onClick={() => setAssigning(request)}
-                              >
-                                <Icon name="mic" size={16} />
-                              </button>
+                              {isAdmin && (
+                                <button
+                                  type="button"
+                                  className="icon-button"
+                                  aria-label={`Assign artist to ${request.id}`}
+                                  onClick={() => setAssigning(request)}
+                                >
+                                  <Icon name="mic" size={16} />
+                                </button>
+                              )}
                             </>
                           )}
                           {status === "Approved" && (
@@ -367,6 +428,7 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
                               type="button"
                               className="text-link text-link--small"
                               onClick={() => setAssigning(request)}
+                              disabled={!isAdmin}
                             >
                               Assign artist
                               <Icon name="plus" size={13} />
@@ -449,6 +511,7 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
                           type="button"
                           className="button button--ink button--tiny"
                           onClick={() => leadAction(lead.id, "Approved", `${lead.id} approved for the booking desk.`)}
+                          disabled={!isAdmin && !isManager}
                         >
                           Approve lead
                         </button>
@@ -456,6 +519,7 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
                           type="button"
                           className="button button--ghost button--tiny"
                           onClick={() => leadAction(lead.id, "On hold", `${lead.id} moved to nurture.`)}
+                          disabled={!isAdmin && !isManager}
                         >
                           Nurture
                         </button>
@@ -551,6 +615,7 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
                         toggleListed(event.id);
                         setToast(`${event.title} ${listed.has(event.id) ? "hidden from" : "listed on"} the public calendar.`);
                       }}
+                      disabled={!isAdmin}
                     >
                       <span className="toggle-row__switch"><i /></span>
                       <span>Public listing</span>
@@ -560,6 +625,7 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
                       type="button"
                       className="button button--line button--small button--full"
                       onClick={() => setToast(`${event.title}: internal hold added.`)}
+                      disabled={!isAdmin}
                     >
                       Add internal hold
                       <Icon name="plus" size={14} />
@@ -571,7 +637,7 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
                   <span className="eyebrow">Open date</span>
                   <h3>No public event.</h3>
                   <p>A clean night. Use it for a private hold or a site visit.</p>
-                  <button type="button" className="button button--line button--small" onClick={() => setToast("Internal hold added for the selected date.")}>
+                  <button type="button" className="button button--line button--small" onClick={() => setToast("Internal hold added for the selected date.")} disabled={!isAdmin}>
                     Add internal hold
                     <Icon name="plus" size={14} />
                   </button>
@@ -581,10 +647,89 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
           </div>
         </section>
 
-        <div className="dash-footnote">
-          <span>Kalakaar control room · data updated 09:42</span>
-          <span>Ops line · <a href="mailto:ops@kalakaarstudios.in">ops@kalakaarstudios.in</a></span>
-        </div>
+        {isAdmin && (
+          <section className="panel team-roles-panel" id="team-roles">
+            <div className="panel__head">
+              <div>
+                <span className="eyebrow">Team management</span>
+                <h2>Team & Roles</h2>
+              </div>
+              <span className="panel__count">{profiles.length} members</span>
+            </div>
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {profiles.map((profile) => (
+                    <tr key={profile.id}>
+                      <td>
+                        <strong>{profile.full_name || "Unnamed user"}</strong>
+                      </td>
+                      <td>{profile.email}</td>
+                      <td>
+                        {editingRole?.id === profile.id ? (
+                          <select
+                            value={editingRole.role}
+                            onChange={(event) => setEditingRole({ id: profile.id, role: event.target.value as UserRole })}
+                            disabled={roleSaving}
+                          >
+                            <option value="admin">Admin</option>
+                            <option value="manager">Manager</option>
+                            <option value="artist">Artist</option>
+                          </select>
+                        ) : (
+                          <span className={`role-badge role-badge--${profile.role}`}>
+                            {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {editingRole?.id !== profile.id ? (
+                          <>
+                            <button
+                              type="button"
+                              className="text-link text-link--small"
+                              onClick={() => handleRoleChange(profile.id, profile.role)}
+                              disabled={roleSaving || profile.id === session?.profile?.id}
+                            >
+                              Edit
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              className="button button--ink button--tiny"
+                              onClick={saveRole}
+                              disabled={roleSaving}
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              className="button button--ghost button--tiny"
+                              onClick={() => setEditingRole(null)}
+                              disabled={roleSaving}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
       </div>
 
       <Modal open={Boolean(assigning)} onClose={() => setAssigning(null)} size="small" labelledBy="assign-title">
@@ -611,7 +756,7 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
               <div><span>Capacity</span><strong>{assigning.capacity} guests</strong></div>
               <div><span>Client</span><strong>{assigning.client}</strong></div>
             </div>
-            <button type="button" className="button button--ink button--full" onClick={confirmAssignment}>
+            <button type="button" className="button button--ink button--full" onClick={confirmAssignment} disabled={!isAdmin}>
               Confirm assignment
               <Icon name="check" size={16} />
             </button>
@@ -619,7 +764,77 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
         )}
       </Modal>
 
+      <Modal open={teamTab} onClose={() => setTeamTab(false)} size="large" labelledBy="team-title">
+        <div className="team-modal">
+          <span className="eyebrow">Team & Role Management</span>
+          <h2 id="team-title">Team Members</h2>
+          <p>
+            Invite new team members by email and assign them an admin or manager
+            role. Artists are created through the public registration form.
+          </p>
+          <div className="form-grid">
+            <label className="field">
+              <span className="field__label">Email address</span>
+              <input
+                type="email"
+                placeholder="devansh@kalakaarstudios.in"
+              />
+            </label>
+            <label className="field">
+              <span className="field__label">Role</span>
+              <select defaultValue="manager">
+                <option value="manager">Manager</option>
+                <option value="artist">Artist</option>
+              </select>
+            </label>
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="button button--ghost" onClick={() => setTeamTab(false)}>
+              Cancel
+            </button>
+            <button type="button" className="button button--ink" disabled={!isAdmin}>
+              Invite team member
+            </button>
+          </div>
+          <div className="team-list">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                {profiles.map((profile) => (
+                  <tr key={profile.id}>
+                    <td><strong>{profile.full_name || "Unnamed user"}</strong></td>
+                    <td>{profile.email}</td>
+                    <td>
+                      <span className={`role-badge role-badge--${profile.role}`}>
+                        {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </Modal>
+
       <Toast message={toast} onDone={() => setToast(null)} />
     </DashboardShell>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Session gate - redirect unauthenticated users                      */
+/* ------------------------------------------------------------------ */
+
+function AdminSessionGate({ session }: { session: AuthSession | null }) {
+  if (!session || !session.isAuthenticated) {
+    return null;
+  }
+  return null;
 }
