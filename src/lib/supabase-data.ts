@@ -325,6 +325,74 @@ export async function insertBooking(booking: BookingForm) {
   }
 }
 
+export interface ArtistApplication {
+  id: string;
+  full_name: string;
+  stage_name: string | null;
+  category: string;
+  location: string | null;
+  travel_availability: string | null;
+  rate: number | null;
+  bio: string | null;
+  portfolio_links: string | null;
+  contact_email: string;
+  contact_phone: string | null;
+  availability_status: string | null;
+  created_at: string | null;
+}
+
+/* Demo artist applications used when Supabase is not configured. */
+export const mockArtistApplications: ArtistApplication[] = [];
+
+export async function insertArtistApplication(application: {
+  fullName: string;
+  stageName: string;
+  category: string;
+  location: string;
+  travelAvailability: string;
+  rate: number;
+  bio: string;
+  portfolioLinks: string;
+  contactEmail: string;
+  contactPhone: string;
+}) {
+  const slug = application.fullName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  const payload: Partial<ArtistApplication> = {
+    id: slug,
+    full_name: application.fullName,
+    stage_name: application.stageName || null,
+    category: application.category,
+    location: application.location || null,
+    travel_availability: application.travelAvailability || null,
+    rate: application.rate || null,
+    bio: application.bio || null,
+    portfolio_links: application.portfolioLinks || null,
+    contact_email: application.contactEmail,
+    contact_phone: application.contactPhone || null,
+    availability_status: "pending",
+  };
+
+  if (!isSupabaseConfigured || !supabase) {
+    console.info("[supabase] not configured; artist application not persisted", payload);
+    return { success: true, data: null, error: null, source: "mock" };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("artists")
+      .insert([payload])
+      .select()
+      .single();
+    return { success: !error, data, error };
+  } catch (error) {
+    return { success: false, data: null, error };
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* Mock fallbacks for tables not yet in Supabase schema               */
 /* ------------------------------------------------------------------ */

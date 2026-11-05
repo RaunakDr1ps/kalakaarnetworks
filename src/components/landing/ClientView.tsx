@@ -34,7 +34,7 @@ const marqueeItems = [
   "Patna · Ranchi · Kolkata",
 ];
 
-export function ClientView() {
+export function ClientView({ onRegisterArtist }: { onRegisterArtist?: () => void } = {}) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [category, setCategory] = useState("All");
   const [budget, setBudget] = useState<BudgetFilter>("any");
@@ -186,7 +186,7 @@ export function ClientView() {
       </header>
 
       <main>
-        <section className="hero">
+        <section className="hero" id="hero">
           <div className="hero__copy">
             <div className="hero__kicker reveal">
               <span className="eyebrow">Artist & venue booking house</span>
@@ -216,6 +216,16 @@ export function ClientView() {
                 Reserve a venue
                 <Icon name="building" size={17} />
               </a>
+              {onRegisterArtist && (
+                <button
+                  type="button"
+                  className="button button--marigold"
+                  onClick={onRegisterArtist}
+                >
+                  Register as Artist
+                  <Icon name="plus" size={17} />
+                </button>
+              )}
             </div>
 
             <div className="hero__proof reveal reveal--delay-4">

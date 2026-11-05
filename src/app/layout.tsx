@@ -19,9 +19,23 @@ const instrumentSans = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Kalakaar Studios · Artist & Venue Booking",
+  title: "Kalakaar Networks | Professional Event Management & Artist Booking",
   description:
-    "Book live talent and rare rooms with Kalakaar Studios. An independent artist and venue booking house in Patna.",
+    "Book top independent artists, comedians, musicians, and heritage venues across Patna, Ranchi, and Kolkata.",
+  openGraph: {
+    title: "Kalakaar Networks | Professional Event Management & Artist Booking",
+    description:
+      "Book top independent artists, comedians, musicians, and heritage venues across Patna, Ranchi, and Kolkata.",
+    type: "website",
+    locale: "en_IN",
+    siteName: "Kalakaar Networks",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kalakaar Networks | Professional Event Management & Artist Booking",
+    description:
+      "Book top independent artists, comedians, musicians, and heritage venues across Patna, Ranchi, and Kolkata.",
+  },
 };
 
 export default function RootLayout({

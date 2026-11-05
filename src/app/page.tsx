@@ -1,5 +1,5 @@
-import { PrototypeShell } from "@/components/PrototypeShell";
+import { ProductionShell } from "@/components/ProductionShell";
 
 export default function Home() {
-  return <PrototypeShell />;
+  return <ProductionShell />;
 }
