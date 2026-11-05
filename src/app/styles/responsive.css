@@ -1,0 +1,1680 @@
+/* ==========================================================================
+   Responsive composition
+   ========================================================================== */
+
+@media (max-width: 1320px) {
+  .demo-bar__meta {
+    display: none;
+  }
+
+  .hero__title {
+    font-size: clamp(4rem, 6.35vw, 6.45rem);
+  }
+
+  .hero__visual {
+    min-height: 590px;
+  }
+
+  .room-row {
+    grid-template-columns: 58px minmax(160px, 1.2fr) minmax(120px, 0.8fr) minmax(105px, 0.65fr) minmax(88px, 0.5fr) 36px;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 1180px) {
+  .dash-sidebar {
+    position: fixed;
+    top: var(--demo-height);
+    left: 0;
+    z-index: 1000;
+    height: calc(100vh - var(--demo-height));
+    transform: translateX(-100%);
+    transition: transform 240ms var(--ease);
+  }
+
+  .dash-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .dash-sidebar__close,
+  .dash-menu {
+    display: inline-flex;
+  }
+
+  .dash-scrim {
+    position: fixed;
+    inset: var(--demo-height) 0 0;
+    z-index: 950;
+    display: block;
+    border: 0;
+    background: rgba(18, 19, 15, 0.55);
+  }
+
+  .dash-body {
+    width: 100%;
+  }
+
+  .dash-hero {
+    grid-template-columns: minmax(0, 1.5fr) minmax(250px, 0.65fr);
+  }
+
+  .booking-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .booking-cards .booking-card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .booking-cards .booking-card:last-child .booking-card__image {
+    height: 92px;
+  }
+
+  .dashboard {
+    display: block;
+  }
+
+  .dash-content {
+    padding: 30px 28px 64px;
+  }
+
+  .admin-top-grid,
+  .admin-mid-grid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.8fr);
+  }
+
+  .admin-calendar {
+    grid-template-columns: minmax(0, 1fr) 250px;
+  }
+}
+
+@media (max-width: 1080px) {
+  .site-header__inner {
+    padding: 0 30px;
+  }
+
+  .hero {
+    padding: 45px 30px 62px;
+    gap: 8px;
+  }
+
+  .hero__title {
+    font-size: clamp(3.7rem, 6.4vw, 5.9rem);
+  }
+
+  .hero__visual {
+    min-height: 545px;
+  }
+
+  .hero__stamp {
+    right: 22%;
+    width: 82px;
+    height: 82px;
+  }
+
+  .section {
+    padding: 82px 30px 90px;
+  }
+
+  .section-heading--split {
+    gap: 45px;
+  }
+
+  .venue-feature {
+    gap: 32px;
+  }
+
+  .availability {
+    grid-template-columns: minmax(0, 1fr) 330px;
+  }
+
+  .availability__calendar {
+    padding: 20px 18px 15px;
+  }
+
+  .availability__panel {
+    padding: 22px 19px;
+  }
+
+  .studio-grid {
+    gap: 55px;
+  }
+
+  .closing-cta {
+    padding: 82px 30px;
+  }
+
+  .site-footer__inner {
+    padding: 54px 30px 46px;
+    gap: 34px;
+  }
+
+  .site-footer__base {
+    padding: 14px 30px;
+  }
+
+  .dash-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-side-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 24px;
+  }
+
+  .dash-side-card__head {
+    grid-column: 1 / -1;
+  }
+
+  .payout-figure {
+    border-bottom: 0;
+  }
+
+  .payout-split {
+    align-self: center;
+    margin-top: 17px;
+    border-top: 1px solid rgba(241, 234, 220, 0.16);
+    border-bottom: 0;
+  }
+
+  .profile-meter {
+    grid-column: 1 / -1;
+    border-top: 1px solid rgba(241, 234, 220, 0.16);
+    padding-top: 12px;
+  }
+
+  .admin-top-grid,
+  .admin-mid-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ops-panel {
+    min-height: 0;
+  }
+
+  .payout-layout {
+    grid-template-columns: minmax(0, 1.35fr) minmax(240px, 0.7fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .site-nav,
+  .site-header__phone {
+    display: none;
+  }
+
+  .menu-button {
+    display: inline-flex;
+  }
+
+  .mobile-nav {
+    display: block;
+  }
+
+  .site-header__inner {
+    min-height: 64px;
+    padding: 0 22px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    padding: 36px 22px 58px;
+  }
+
+  .hero__copy {
+    padding-right: 0;
+  }
+
+  .hero__title {
+    font-size: clamp(3.45rem, 10.2vw, 5.9rem);
+  }
+
+  .hero__lede {
+    max-width: 580px;
+    font-size: 16px;
+  }
+
+  .hero__proof {
+    margin-top: 33px;
+  }
+
+  .hero__visual {
+    min-height: 530px;
+    margin-top: 35px;
+  }
+
+  .hero__image-main {
+    left: 0;
+    width: 78%;
+    height: 79%;
+  }
+
+  .hero__image-side {
+    right: 3%;
+  }
+
+  .hero__next {
+    bottom: 0;
+  }
+
+  .hero__rail {
+    display: none;
+  }
+
+  .hero__stamp {
+    top: 0;
+    right: 24%;
+    width: 76px;
+    height: 76px;
+  }
+
+  .section {
+    padding: 70px 22px 78px;
+  }
+
+  .section-heading--split {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    margin-bottom: 33px;
+  }
+
+  .section-heading__aside {
+    max-width: 550px;
+  }
+
+  .section-heading h2 {
+    font-size: clamp(2.85rem, 8.1vw, 4.6rem);
+  }
+
+  .filter-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 11px;
+  }
+
+  .filter-bar__categories {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .talent-grid {
+    grid-template-columns: 1fr;
+    gap: 38px;
+  }
+
+  .talent-card.is-featured {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .talent-card.is-featured .talent-card__image {
+    height: 390px;
+  }
+
+  .talent-card.is-featured .talent-card__body {
+    padding: 21px 22px 21px;
+  }
+
+  .talent-card.is-featured .talent-card__title-row h3 {
+    font-size: 34px;
+  }
+
+  .talent-card.is-featured .talent-card__blurb {
+    max-width: 560px;
+    margin-top: 13px;
+    font-size: 13px;
+  }
+
+  .venue-feature {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .venue-feature__image {
+    height: 370px;
+  }
+
+  .room-row {
+    grid-template-columns: 52px minmax(0, 1fr) auto auto;
+    gap: 12px;
+  }
+
+  .room-row__meta,
+  .room-row__availability {
+    display: none;
+  }
+
+  .room-row__rate {
+    align-items: flex-end;
+  }
+
+  .availability {
+    grid-template-columns: 1fr;
+  }
+
+  .availability__panel {
+    min-height: 0;
+  }
+
+  .availability__fineprint {
+    max-width: 480px;
+  }
+
+  .studio-grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .studio-manifesto h2 {
+    font-size: clamp(3rem, 8.2vw, 4.4rem);
+  }
+
+  .studio-doodle {
+    width: 120px;
+    margin-top: 28px;
+  }
+
+  .closing-cta {
+    padding: 72px 22px;
+  }
+
+  .closing-cta h2 {
+    font-size: clamp(3.3rem, 9.7vw, 5.5rem);
+  }
+
+  .closing-cta__stamp {
+    right: 4%;
+    bottom: 7%;
+    width: 105px;
+    height: 105px;
+  }
+
+  .site-footer__inner {
+    grid-template-columns: 1.4fr 0.8fr 0.8fr;
+    padding: 46px 22px 38px;
+  }
+
+  .site-footer__col:last-child {
+    grid-column: 1 / -1;
+    padding-top: 19px;
+    border-top: 1px solid var(--line);
+  }
+
+  .site-footer__base {
+    padding: 13px 22px;
+    flex-wrap: wrap;
+    gap: 7px 20px;
+  }
+
+  .booking-modal {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-modal__aside {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .booking-modal__image {
+    height: 100%;
+    min-height: 188px;
+  }
+
+  .booking-modal__artist {
+    padding: 18px 20px;
+  }
+
+  .booking-modal__artist h3 {
+    font-size: 27px;
+  }
+
+  .mini-ledger {
+    margin-top: 12px;
+  }
+
+  .booking-modal__note {
+    display: none;
+  }
+
+  .booking-modal__main {
+    padding: 27px 24px 24px;
+  }
+
+  .venue-modal {
+    grid-template-columns: 1fr;
+  }
+
+  .venue-modal__image {
+    min-height: 205px;
+  }
+
+  .venue-modal__main {
+    padding: 26px 24px 24px;
+  }
+
+  .venue-modal__image-caption {
+    padding: 14px 16px;
+  }
+
+  .dash-content {
+    padding: 26px 20px 58px;
+  }
+
+  .dash-page-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 17px;
+  }
+
+  .dash-page-head h1 {
+    font-size: clamp(2.8rem, 7.5vw, 4rem);
+  }
+
+  .dash-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .next-gig {
+    grid-template-columns: 42% 1fr;
+  }
+
+  .dash-columns,
+  .dash-columns--client {
+    grid-template-columns: 1fr;
+  }
+
+  .artist-availability {
+    grid-template-columns: 1fr;
+  }
+
+  .availability-summary {
+    min-height: 0;
+  }
+
+  .availability-summary .button {
+    max-width: 210px;
+  }
+
+  .payout-layout {
+    grid-template-columns: 1fr;
+    gap: 23px;
+  }
+
+  .payout-next {
+    padding: 17px 0 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .booking-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .booking-cards .booking-card:last-child {
+    grid-column: auto;
+  }
+
+  .booking-cards .booking-card:last-child .booking-card__image {
+    height: 130px;
+  }
+
+  .client-calendar {
+    max-width: none;
+  }
+
+  .admin-table-wrap {
+    margin-right: -25px;
+    margin-left: -25px;
+  }
+
+  .admin-table th:first-child,
+  .admin-table td:first-child {
+    padding-left: 25px;
+  }
+
+  .admin-table th:last-child,
+  .admin-table td:last-child {
+    padding-right: 25px;
+  }
+
+  .admin-calendar {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-calendar__side {
+    padding: 18px 0 0;
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .calendar-manage-card {
+    max-width: 380px;
+  }
+
+  .revenue-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .revenue-summary {
+    flex-wrap: wrap;
+    gap: 15px 22px;
+  }
+}
+
+@media (max-width: 720px) {
+  .demo-bar__inner {
+    gap: 9px;
+    padding: 0 11px;
+  }
+
+  .demo-bar__name,
+  .demo-bar__tag {
+    display: none;
+  }
+
+  .demo-switcher {
+    justify-content: flex-start;
+    flex: 1;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .demo-switcher::-webkit-scrollbar {
+    display: none;
+  }
+
+  .demo-switcher__tab {
+    flex: 1 0 auto;
+    justify-content: center;
+    padding: 0 9px;
+    font-size: 8px;
+    letter-spacing: 0.045em;
+  }
+
+  .demo-switcher__num {
+    font-size: 9px;
+  }
+
+  .demo-switcher__long {
+    display: none;
+  }
+
+  .demo-switcher__short {
+    display: inline;
+  }
+
+  .hero__visual {
+    min-height: 455px;
+  }
+
+  .hero__image-main {
+    width: 79%;
+    height: 76%;
+  }
+
+  .hero__image-side {
+    width: 39%;
+    height: 33%;
+  }
+
+  .hero__next {
+    width: 224px;
+    padding: 14px 15px;
+  }
+
+  .hero__next strong {
+    font-size: 20px;
+  }
+
+  .hero__stamp {
+    right: 25%;
+    width: 66px;
+    height: 66px;
+  }
+
+  .hero__doodle {
+    display: none;
+  }
+
+  .hero__proof {
+    max-width: none;
+  }
+
+  .hero__proof > div {
+    padding-right: 10px;
+  }
+
+  .hero__proof > div + div {
+    padding-left: 11px;
+  }
+
+  .hero__proof strong {
+    font-size: 21px;
+  }
+
+  .section-heading h2 {
+    font-size: clamp(2.55rem, 9.5vw, 3.75rem);
+  }
+
+  .filter-bar__controls {
+    flex-wrap: wrap;
+  }
+
+  .filter-date {
+    flex: 1;
+  }
+
+  .filter-date input {
+    width: 100%;
+  }
+
+  .talent-card__image {
+    height: 270px;
+  }
+
+  .talent-card.is-featured .talent-card__image {
+    height: 280px;
+  }
+
+  .talent-card.is-featured .talent-card__title-row h3 {
+    font-size: 29px;
+  }
+
+  .roster-note {
+    flex-wrap: wrap;
+  }
+
+  .roster-note .text-link {
+    margin-left: 60px;
+  }
+
+  .venue-feature__image {
+    height: 300px;
+  }
+
+  .venue-feature__caption {
+    width: 82%;
+    padding: 14px 16px;
+  }
+
+  .venue-feature__caption h3 {
+    font-size: 28px;
+  }
+
+  .venue-form {
+    padding: 23px 20px 21px;
+  }
+
+  .venue-form__head h3 {
+    font-size: 31px;
+  }
+
+  .form-grid,
+  .form-grid--venue {
+    grid-template-columns: 1fr;
+  }
+
+  .venue-form__footer {
+    align-items: flex-end;
+  }
+
+  .venue-form__footer .button {
+    padding: 0 14px;
+    font-size: 9px;
+  }
+
+  .room-row {
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+  }
+
+  .room-row__image {
+    width: 44px;
+    height: 44px;
+  }
+
+  .room-row__rate {
+    display: none;
+  }
+
+  .availability__top {
+    flex-direction: column;
+  }
+
+  .availability__tools {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .availability__tools .segmented {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .availability__tools .segmented button {
+    flex: 0 0 auto;
+  }
+
+  .availability__month h3 {
+    font-size: 25px;
+  }
+
+  .calendar-day {
+    min-height: 78px;
+    padding: 6px;
+  }
+
+  .calendar-stat {
+    display: none;
+  }
+
+  .calendar-key__note {
+    display: none;
+  }
+
+  .closing-cta__stamp {
+    display: none;
+  }
+
+  .site-footer__inner {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .site-footer__brand {
+    grid-column: 1 / -1;
+  }
+
+  .site-footer__col:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .dash-topbar {
+    padding: 0 14px;
+  }
+
+  .dash-breadcrumb {
+    display: none;
+  }
+
+  .dash-topbar__date {
+    display: none;
+  }
+
+  .dash-content {
+    padding: 22px 14px 50px;
+  }
+
+  .panel {
+    padding: 19px 17px;
+  }
+
+  .panel__head h2 {
+    font-size: 26px;
+  }
+
+  .next-gig {
+    grid-template-columns: 1fr;
+  }
+
+  .next-gig__image {
+    min-height: 208px;
+  }
+
+  .next-gig__body {
+    padding: 19px 19px 17px;
+  }
+
+  .dash-stat-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dash-stat-strip > div {
+    padding: 14px 12px;
+  }
+
+  .dash-stat-strip > div:first-child {
+    padding-left: 12px;
+  }
+
+  .dash-stat-strip > div:nth-child(3) {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .dash-stat-strip > div:nth-child(4) {
+    border-top: 1px solid var(--line);
+  }
+
+  .dash-stat-strip strong {
+    font-size: 25px;
+  }
+
+  .dash-stat-strip--client strong,
+  .dash-stat-strip--admin strong {
+    font-size: 21px;
+  }
+
+  .availability-panel__controls {
+    align-items: flex-start;
+  }
+
+  .artist-day {
+    min-height: 59px;
+    padding: 5px;
+  }
+
+  .artist-day__event {
+    display: none;
+  }
+
+  .artist-day__state {
+    font-size: 5px;
+  }
+
+  .gig-row {
+    grid-template-columns: 42px 37px minmax(0, 1fr) 27px;
+  }
+
+  .gig-row__fee {
+    display: none;
+  }
+
+  .gig-row__image {
+    width: 35px;
+    height: 35px;
+  }
+
+  .booking-cards {
+    gap: 10px;
+  }
+
+  .message-thread {
+    max-height: 330px;
+  }
+
+  .concierge-strip {
+    flex-wrap: wrap;
+  }
+
+  .concierge-strip .button {
+    margin-left: 58px;
+  }
+
+  .admin-top-grid,
+  .admin-mid-grid {
+    gap: 13px;
+  }
+
+  .requests-panel .panel__head {
+    gap: 13px;
+  }
+
+  .requests-panel .segmented {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .admin-table-wrap {
+    margin-right: -17px;
+    margin-left: -17px;
+  }
+
+  .admin-table th:first-child,
+  .admin-table td:first-child {
+    padding-left: 17px;
+  }
+
+  .admin-table th:last-child,
+  .admin-table td:last-child {
+    padding-right: 17px;
+  }
+
+  .admin-day {
+    min-height: 55px;
+    padding: 5px;
+  }
+
+  .admin-day__event {
+    display: none;
+  }
+
+  .revenue-bars {
+    gap: 9px;
+  }
+
+  .revenue-bar__booked,
+  .revenue-bar__collected {
+    width: 8px;
+  }
+
+  .ops-row {
+    grid-template-columns: 31px 25px minmax(0, 1fr);
+  }
+
+  .ops-row em {
+    display: none;
+  }
+
+  .payout-modal,
+  .assign-modal {
+    padding: 28px 22px 24px;
+  }
+
+  .run-modal {
+    padding: 30px 23px 25px;
+  }
+
+  .booking-detail-modal__body {
+    padding: 23px 21px;
+  }
+
+  .booking-detail-modal__body h2 {
+    font-size: 33px;
+  }
+
+  .modal-heading h2 {
+    font-size: 36px;
+  }
+
+  .modal-backdrop {
+    padding: 14px;
+  }
+
+  .modal {
+    max-height: calc(100vh - 28px);
+  }
+
+  .booking-success {
+    padding: 46px 22px 36px;
+  }
+
+  .booking-success h2 {
+    font-size: 38px;
+  }
+
+  .venue-form--success {
+    min-height: 450px;
+  }
+
+  .venue-form--success h3 {
+    font-size: 40px;
+  }
+
+  .dash-footnote {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+}
+
+@media (max-width: 540px) {
+  :root {
+    --demo-height: 52px;
+  }
+
+  .demo-bar__identity {
+    gap: 0;
+  }
+
+  .demo-switcher__num {
+    display: none;
+  }
+
+  .demo-switcher__tab {
+    padding: 0 8px;
+    font-size: 8px;
+  }
+
+  .site-header__inner {
+    min-height: 58px;
+    padding: 0 16px;
+  }
+
+  .wordmark__name {
+    font-size: 20px;
+  }
+
+  .wordmark__sub {
+    display: none;
+  }
+
+  .site-header__actions {
+    gap: 8px;
+  }
+
+  .site-header__actions .button {
+    display: none;
+  }
+
+  .hero {
+    padding: 28px 16px 48px;
+  }
+
+  .hero__kicker {
+    gap: 10px;
+  }
+
+  .hero__kicker-note {
+    font-size: 7px;
+  }
+
+  .hero__title {
+    margin-top: 20px;
+    font-size: clamp(3rem, 14.2vw, 4.1rem);
+    line-height: 0.9;
+  }
+
+  .hero__lede {
+    margin-top: 22px;
+    font-size: 14px;
+  }
+
+  .hero__actions {
+    width: 100%;
+    margin-top: 24px;
+  }
+
+  .hero__actions .button {
+    flex: 1 1 100%;
+  }
+
+  .hero__proof {
+    gap: 0;
+    margin-top: 30px;
+    padding-top: 15px;
+  }
+
+  .hero__proof > div {
+    padding-right: 5px;
+  }
+
+  .hero__proof > div + div {
+    padding-left: 7px;
+  }
+
+  .hero__proof strong {
+    font-size: 18px;
+  }
+
+  .hero__proof span {
+    font-size: 6px;
+  }
+
+  .hero__visual {
+    min-height: 390px;
+    margin-top: 27px;
+  }
+
+  .hero__image-main {
+    height: 75%;
+  }
+
+  .hero__image-side {
+    width: 41%;
+    height: 34%;
+    border-width: 3px;
+  }
+
+  .hero__next {
+    width: 195px;
+    padding: 12px;
+  }
+
+  .hero__next strong {
+    font-size: 17px;
+  }
+
+  .hero__next-meta {
+    font-size: 8px;
+  }
+
+  .hero__next-status {
+    margin-top: 8px;
+    font-size: 6px;
+  }
+
+  .hero__stamp {
+    display: none;
+  }
+
+  .section {
+    padding: 58px 16px 65px;
+  }
+
+  .section-heading h2 {
+    font-size: clamp(2.25rem, 11.5vw, 3.1rem);
+  }
+
+  .section-heading__aside > p {
+    font-size: 13px;
+  }
+
+  .filter-bar__categories {
+    gap: 0;
+  }
+
+  .filter-bar__categories button {
+    padding: 0 8px;
+    font-size: 8px;
+  }
+
+  .filter-bar__controls {
+    gap: 6px;
+  }
+
+  .filter-select {
+    flex: 1;
+  }
+
+  .filter-reset {
+    margin-left: 0;
+  }
+
+  .talent-card__image {
+    height: 230px;
+  }
+
+  .talent-card.is-featured .talent-card__image {
+    height: 220px;
+  }
+
+  .talent-card__title-row h3,
+  .talent-card.is-featured .talent-card__title-row h3 {
+    font-size: 25px;
+  }
+
+  .talent-card__fee strong {
+    font-size: 18px;
+  }
+
+  .talent-card__blurb {
+    font-size: 11px;
+  }
+
+  .talent-card__actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .empty-state h3 {
+    font-size: 34px;
+  }
+
+  .venue-feature__image {
+    height: 245px;
+  }
+
+  .venue-feature__blurb {
+    font-size: 12px;
+  }
+
+  .venue-feature__ledger {
+    gap: 8px;
+  }
+
+  .venue-feature__ledger strong {
+    font-size: 14px;
+  }
+
+  .venue-form__head h3 {
+    font-size: 28px;
+  }
+
+  .venue-form__footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .venue-form__footer .button {
+    width: 100%;
+  }
+
+  .room-row__name h3 {
+    font-size: 18px;
+  }
+
+  .availability__calendar {
+    padding: 15px 10px 12px;
+  }
+
+  .availability__month {
+    gap: 7px;
+  }
+
+  .availability__month h3 {
+    font-size: 20px;
+  }
+
+  .availability__month .icon-button {
+    width: 28px;
+    height: 28px;
+  }
+
+  .calendar-grid--labels span {
+    padding: 7px 2px;
+    font-size: 6px;
+    text-align: center;
+  }
+
+  .calendar-day {
+    min-height: 59px;
+    padding: 4px;
+  }
+
+  .calendar-day__number {
+    font-size: 12px;
+  }
+
+  .calendar-day__number em {
+    display: none;
+  }
+
+  .calendar-day__body {
+    margin-top: 5px;
+  }
+
+  .calendar-event {
+    font-size: 6px;
+    line-height: 1.2;
+  }
+
+  .availability__panel {
+    padding: 19px 16px;
+  }
+
+  .availability__panel-head h3 {
+    font-size: 26px;
+  }
+
+  .availability__panel-year {
+    display: none;
+  }
+
+  .studio-manifesto h2 {
+    font-size: 2.75rem;
+  }
+
+  .studio-manifesto > p {
+    font-size: 13px;
+  }
+
+  .process-row {
+    grid-template-columns: 32px 1fr;
+    gap: 10px;
+  }
+
+  .process-row > svg {
+    display: none;
+  }
+
+  .process-row h3 {
+    font-size: 23px;
+  }
+
+  .closing-cta {
+    padding: 58px 16px;
+  }
+
+  .closing-cta h2 {
+    font-size: 3rem;
+  }
+
+  .closing-cta p {
+    font-size: 13px;
+  }
+
+  .site-footer__inner {
+    grid-template-columns: 1fr;
+    padding: 38px 16px 30px;
+    gap: 26px;
+  }
+
+  .site-footer__brand,
+  .site-footer__col:last-child {
+    grid-column: auto;
+  }
+
+  .site-footer__base {
+    padding: 12px 16px;
+    font-size: 7px;
+  }
+
+  .dash-content {
+    padding: 18px 11px 44px;
+  }
+
+  .dash-page {
+    gap: 15px;
+  }
+
+  .dash-page-head h1 {
+    font-size: 2.55rem;
+  }
+
+  .dash-page-head p {
+    font-size: 12px;
+  }
+
+  .dash-page-head__actions {
+    width: 100%;
+  }
+
+  .dash-page-head__actions .button {
+    flex: 1;
+  }
+
+  .panel {
+    padding: 16px 13px;
+  }
+
+  .panel__head {
+    gap: 10px;
+  }
+
+  .panel__head h2 {
+    font-size: 23px;
+  }
+
+  .dash-hero {
+    gap: 11px;
+  }
+
+  .next-gig__image {
+    min-height: 175px;
+  }
+
+  .next-gig__body h2 {
+    font-size: 31px;
+  }
+
+  .dash-side-card {
+    display: block;
+    padding: 17px;
+  }
+
+  .payout-figure {
+    border-bottom: 1px solid rgba(241, 234, 220, 0.16);
+  }
+
+  .payout-split {
+    margin-top: 0;
+    border-top: 0;
+    border-bottom: 1px solid rgba(241, 234, 220, 0.16);
+  }
+
+  .profile-meter {
+    border-top: 0;
+  }
+
+  .dash-stat-strip strong {
+    font-size: 22px;
+  }
+
+  .gig-row {
+    grid-template-columns: 37px 32px minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .gig-row .round-link {
+    display: none;
+  }
+
+  .gig-row__copy h3 {
+    font-size: 15px;
+  }
+
+  .gig-row__copy p {
+    font-size: 8px;
+  }
+
+  .artist-availability {
+    gap: 13px;
+  }
+
+  .artist-calendar__labels span {
+    padding: 6px 2px;
+    font-size: 6px;
+    text-align: center;
+  }
+
+  .artist-day {
+    min-height: 49px;
+    padding: 4px;
+  }
+
+  .artist-day__num {
+    font-size: 11px;
+  }
+
+  .availability-summary {
+    padding: 16px 14px;
+  }
+
+  .bars {
+    height: 132px;
+    gap: 8px;
+  }
+
+  .bar__label {
+    font-size: 7px;
+  }
+
+  .payout-chart__head {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .booking-card__image {
+    height: 110px;
+  }
+
+  .booking-card__title {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .booking-card__title .status-tag {
+    align-self: flex-start;
+  }
+
+  .booking-progress__step em {
+    font-size: 5px;
+  }
+
+  .invoice-row {
+    grid-template-columns: 27px minmax(0, 1fr) auto;
+  }
+
+  .invoice-row__amount {
+    grid-column: 2;
+    flex-direction: row;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .invoice-row > .button,
+  .invoice-row > .icon-button {
+    grid-row: 1 / span 2;
+    grid-column: 3;
+  }
+
+  .client-day {
+    min-height: 35px;
+    font-size: 10px;
+  }
+
+  .message-contact {
+    display: none;
+  }
+
+  .concierge-strip {
+    align-items: flex-start;
+  }
+
+  .concierge-strip > div {
+    flex: 1;
+  }
+
+  .concierge-strip .button {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .admin-table-wrap {
+    margin-right: -13px;
+    margin-left: -13px;
+  }
+
+  .admin-table th:first-child,
+  .admin-table td:first-child {
+    padding-left: 13px;
+  }
+
+  .admin-table th:last-child,
+  .admin-table td:last-child {
+    padding-right: 13px;
+  }
+
+  .admin-day {
+    min-height: 43px;
+    padding: 4px;
+  }
+
+  .admin-day__num {
+    font-size: 10px;
+  }
+
+  .admin-calendar__labels span {
+    padding: 6px 2px;
+    font-size: 6px;
+    text-align: center;
+  }
+
+  .revenue-chart {
+    grid-template-columns: 27px 1fr;
+  }
+
+  .revenue-bar__booked,
+  .revenue-bar__collected {
+    width: 6px;
+  }
+
+  .revenue-bar__label {
+    font-size: 6px;
+  }
+
+  .requests-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .lead-row__head {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .sports-row {
+    grid-template-columns: 31px 25px 1fr;
+  }
+
+  .modal-backdrop {
+    padding: 8px;
+  }
+
+  .modal {
+    max-height: calc(100vh - 16px);
+  }
+
+  .booking-modal__aside {
+    grid-template-columns: 108px 1fr;
+  }
+
+  .booking-modal__image {
+    min-height: 165px;
+  }
+
+  .booking-modal__artist {
+    padding: 14px 14px;
+  }
+
+  .booking-modal__artist h3 {
+    font-size: 23px;
+  }
+
+  .mini-ledger {
+    gap: 5px;
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  .mini-ledger div:nth-child(3) {
+    display: none;
+  }
+
+  .booking-modal__main {
+    padding: 23px 16px 19px;
+  }
+
+  .modal-heading h2 {
+    font-size: 31px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .modal-actions .button {
+    width: 100%;
+  }
+
+  .modal-actions__hint {
+    text-align: center;
+  }
+
+  .booking-success {
+    padding: 40px 16px 30px;
+  }
+
+  .booking-success h2 {
+    font-size: 33px;
+  }
+
+  .booking-success__ticket {
+    grid-template-columns: 1fr;
+  }
+
+  .venue-modal__image {
+    min-height: 165px;
+  }
+
+  .venue-modal__main {
+    padding: 22px 16px 20px;
+  }
+
+  .venue-modal .modal-heading h2 {
+    font-size: 34px;
+  }
+
+  .payout-modal,
+  .assign-modal,
+  .run-modal,
+  .booking-detail-modal__body {
+    padding: 25px 17px 22px;
+  }
+
+  .toast {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    max-width: none;
+    font-size: 11px;
+  }
+}
