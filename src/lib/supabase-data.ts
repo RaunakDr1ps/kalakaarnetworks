@@ -1,22 +1,5 @@
 import { supabase, isSupabaseConfigured } from "./supabase";
-import {
-  artists as mockArtists,
-  venues as mockVenues,
-  publicEvents as mockPublicEvents,
-  artistInquiries as mockArtistInquiries,
-  venueRequests as mockVenueRequests,
-  clientBookings as mockClientBookings,
-  clientInvoices as mockClientInvoices,
-  clientTimeline as mockClientTimeline,
-  clientMessages as mockClientMessages,
-  clientLeads as mockClientLeads,
-  artistPayouts as mockArtistPayouts,
-  assignmentLog as mockAssignmentLog,
-  adminRevenue as mockAdminRevenue,
-  bookedDatesForArtist,
-  type Artist,
-  type Venue,
-} from "@/data/mock";
+import type { Artist, Venue } from "@/data/mock";
 
 /* ------------------------------------------------------------------ */
 /* Supabase row types (match supabase/schema.sql)                     */
@@ -81,59 +64,17 @@ export interface AuthSession {
   isArtist: boolean;
 }
 
-/* Demo profiles used when Supabase is not configured. */
-export const mockProfiles: SupabaseProfile[] = [
-  {
-    id: "00000000-0000-0000-0000-000000000001",
-    email: "aarav@kalakaarstudios.in",
-    role: "admin",
-    full_name: "Aarav Sinha",
-    created_at: "2026-11-01T00:00:00Z",
-  },
-  {
-    id: "00000000-0000-0000-0000-000000000002",
-    email: "devansh@kalakaarstudios.in",
-    role: "manager",
-    full_name: "Devansh Sinha",
-    created_at: "2026-11-01T00:00:00Z",
-  },
-  {
-    id: "00000000-0000-0000-0000-000000000003",
-    email: "ananya@kalakaarstudios.in",
-    role: "artist",
-    full_name: "Ananya Rao",
-    created_at: "2026-11-01T00:00:00Z",
-  },
-];
-
 /* ------------------------------------------------------------------ */
 /* Auth helpers                                                         */
 /* ------------------------------------------------------------------ */
 
 export async function signInWithPassword(email: string, password: string) {
   if (!isSupabaseConfigured || !supabase) {
-    // Demo fallback: accept known credentials
-    const demoUsers: Record<string, { role: UserRole; fullName: string }> = {
-      "aarav@kalakaarstudios.in": { role: "admin", fullName: "Aarav Sinha" },
-      "devansh@kalakaarstudios.in": { role: "manager", fullName: "Devansh Sinha" },
-      "ananya@kalakaarstudios.in": { role: "artist", fullName: "Ananya Rao" },
+    return {
+      success: false,
+      session: null,
+      error: new Error("Supabase is not configured."),
     };
-    const user = demoUsers[email.toLowerCase()];
-    if (user && password === "kalakaar2026") {
-      return {
-        success: true,
-        session: {
-          user: { id: "00000000-0000-0000-0000-00000000000" + email.charCodeAt(0).toString(16), email },
-          profile: mockProfiles.find((p) => p.email === email) ?? null,
-          isAuthenticated: true,
-          isAdmin: user.role === "admin",
-          isManager: user.role === "manager",
-          isArtist: user.role === "artist",
-        },
-        error: null,
-      };
-    }
-    return { success: false, session: null, error: new Error("Invalid credentials") };
   }
 
   try {
@@ -185,7 +126,7 @@ export async function signOut() {
 
 export async function fetchProfile(userId: string): Promise<SupabaseProfile | null> {
   if (!isSupabaseConfigured || !supabase) {
-    return mockProfiles.find((p) => p.id === userId) ?? null;
+    return null;
   }
   try {
     const { data, error } = await supabase
@@ -206,24 +147,24 @@ export async function fetchProfile(userId: string): Promise<SupabaseProfile | nu
 
 export async function fetchProfiles(): Promise<SupabaseProfile[]> {
   if (!isSupabaseConfigured || !supabase) {
-    return mockProfiles;
+    return [];
   }
   try {
     const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: true });
     if (error) {
       console.warn("[supabase] profiles fetch failed", error);
-      return mockProfiles;
+      return [];
     }
     return (data ?? []) as SupabaseProfile[];
   } catch (error) {
     console.warn("[supabase] profiles fetch error", error);
-    return mockProfiles;
+    return [];
   }
 }
 
 export async function updateProfileRole(userId: string, role: UserRole) {
   if (!isSupabaseConfigured || !supabase) {
-    return { success: true, error: null, source: "mock" as const };
+    return { success: false, error: new Error("Supabase is not configured.") };
   }
   try {
     const { data, error } = await supabase
@@ -238,18 +179,9 @@ export async function updateProfileRole(userId: string, role: UserRole) {
   }
 }
 
-export async function inviteTeamMember(email: string, role: UserRole) {
-  /* In a production app this would trigger a Supabase Auth invite flow.
-     For the demo we create a placeholder profile so the team UI works offline. */
+export async function inviteTeamMember(email: string) {
   if (!isSupabaseConfigured || !supabase) {
-    const profile: SupabaseProfile = {
-      id: `invite-${Date.now()}`,
-      email,
-      role,
-      full_name: null,
-      created_at: new Date().toISOString(),
-    };
-    return { success: true, data: profile, error: null, source: "mock" as const };
+    return { success: false, error: new Error("Supabase is not configured.") };
   }
   try {
     const { data, error } = await supabase.auth.admin.inviteUserByEmail(email);
@@ -258,66 +190,6 @@ export async function inviteTeamMember(email: string, role: UserRole) {
     return { success: false, data: null, error };
   }
 }
-
-/* Demo bookings used when Supabase is not configured. Mirrors the mock
-   enquiries/requests so the dashboards remain populated offline. */
-export const mockBookings: SupabaseBooking[] = [
-  {
-    id: "KS-2048",
-    client_name: "Devansh Sinha",
-    client_email: "devansh@kalakaarstudios.in",
-    client_phone: "+91 98765 43210",
-    type: "artist",
-    target_id: "sufi-cartel",
-    event_date: "2026-11-21",
-    status: "new",
-    created_at: "2026-11-01T00:00:00Z",
-  },
-  {
-    id: "KS-2051",
-    client_name: "Bihar Chamber of Commerce",
-    client_email: "ops@biharchamber.in",
-    client_phone: "+91 98765 43210",
-    type: "venue",
-    target_id: "urja-auditorium",
-    event_date: "2026-11-22",
-    status: "new",
-    created_at: "2026-11-02T00:00:00Z",
-  },
-  {
-    id: "KS-2033",
-    client_name: "Ishaan Verma",
-    client_email: "ishaan@example.com",
-    client_phone: "+91 98765 43210",
-    type: "artist",
-    target_id: "meera-vashisht",
-    event_date: "2026-12-20",
-    status: "confirmed",
-    created_at: "2026-11-03T00:00:00Z",
-  },
-  {
-    id: "VR-1094",
-    client_name: "Bihar Chamber of Commerce",
-    client_email: "ops@biharchamber.in",
-    client_phone: "+91 98765 43210",
-    type: "venue",
-    target_id: "urja-auditorium",
-    event_date: "2026-11-22",
-    status: "new",
-    created_at: "2026-11-01T00:00:00Z",
-  },
-  {
-    id: "VR-1091",
-    client_name: "Studio Nine",
-    client_email: "producer@studionine.in",
-    client_phone: "+91 98765 43210",
-    type: "venue",
-    target_id: "maurya-hall-a",
-    event_date: "2026-12-11",
-    status: "reviewing",
-    created_at: "2026-11-02T00:00:00Z",
-  },
-];
 
 export type BookingForm = {
   clientName: string;
@@ -439,7 +311,7 @@ function mapSupabaseVenue(row: SupabaseVenue): Venue {
 
 export async function fetchArtists(): Promise<Artist[]> {
   if (!isSupabaseConfigured || !supabase) {
-    return mockArtists;
+    return [];
   }
   try {
     const { data, error } = await supabase
@@ -447,19 +319,19 @@ export async function fetchArtists(): Promise<Artist[]> {
       .select("*")
       .order("created_at", { ascending: false });
     if (error) {
-      console.warn("[supabase] artists fetch failed, using mock data", error);
-      return mockArtists;
+      console.warn("[supabase] artists fetch failed", error);
+      return [];
     }
     return (data ?? []).map(mapSupabaseArtist);
   } catch (error) {
-    console.warn("[supabase] artists fetch error, using mock data", error);
-    return mockArtists;
+    console.warn("[supabase] artists fetch error", error);
+    return [];
   }
 }
 
 export async function fetchVenues(): Promise<Venue[]> {
   if (!isSupabaseConfigured || !supabase) {
-    return mockVenues;
+    return [];
   }
   try {
     const { data, error } = await supabase
@@ -467,19 +339,19 @@ export async function fetchVenues(): Promise<Venue[]> {
       .select("*")
       .order("created_at", { ascending: false });
     if (error) {
-      console.warn("[supabase] venues fetch failed, using mock data", error);
-      return mockVenues;
+      console.warn("[supabase] venues fetch failed", error);
+      return [];
     }
     return (data ?? []).map(mapSupabaseVenue);
   } catch (error) {
-    console.warn("[supabase] venues fetch error, using mock data", error);
-    return mockVenues;
+    console.warn("[supabase] venues fetch error", error);
+    return [];
   }
 }
 
 export async function fetchBookings(): Promise<SupabaseBooking[]> {
   if (!isSupabaseConfigured || !supabase) {
-    return mockBookings;
+    return [];
   }
   try {
     const { data, error } = await supabase
@@ -487,13 +359,13 @@ export async function fetchBookings(): Promise<SupabaseBooking[]> {
       .select("*")
       .order("created_at", { ascending: false });
     if (error) {
-      console.warn("[supabase] bookings fetch failed, using mock data", error);
-      return mockBookings;
+      console.warn("[supabase] bookings fetch failed", error);
+      return [];
     }
     return (data ?? []) as SupabaseBooking[];
   } catch (error) {
-    console.warn("[supabase] bookings fetch error, using mock data", error);
-    return mockBookings;
+    console.warn("[supabase] bookings fetch error", error);
+    return [];
   }
 }
 
@@ -513,8 +385,7 @@ export async function insertBooking(booking: BookingForm) {
   };
 
   if (!isSupabaseConfigured || !supabase) {
-    console.info("[supabase] not configured; booking not persisted", payload);
-    return { success: true, data: null, error: null, source: "mock" };
+    return { success: false, data: null, error: new Error("Supabase is not configured.") };
   }
 
   try {
@@ -544,9 +415,6 @@ export interface ArtistApplication {
   availability_status: string | null;
   created_at: string | null;
 }
-
-/* Demo artist applications used when Supabase is not configured. */
-export const mockArtistApplications: ArtistApplication[] = [];
 
 export async function insertArtistApplication(application: {
   fullName: string;
@@ -581,8 +449,7 @@ export async function insertArtistApplication(application: {
   };
 
   if (!isSupabaseConfigured || !supabase) {
-    console.info("[supabase] not configured; artist application not persisted", payload);
-    return { success: true, data: null, error: null, source: "mock" };
+    return { success: false, data: null, error: new Error("Supabase is not configured.") };
   }
 
   try {
@@ -596,22 +463,3 @@ export async function insertArtistApplication(application: {
     return { success: false, data: null, error };
   }
 }
-
-/* ------------------------------------------------------------------ */
-/* Mock fallbacks for tables not yet in Supabase schema               */
-/* ------------------------------------------------------------------ */
-
-export const mockData = {
-  publicEvents: mockPublicEvents,
-  artistInquiries: mockArtistInquiries,
-  venueRequests: mockVenueRequests,
-  clientBookings: mockClientBookings,
-  clientInvoices: mockClientInvoices,
-  clientTimeline: mockClientTimeline,
-  clientMessages: mockClientMessages,
-  clientLeads: mockClientLeads,
-  artistPayouts: mockArtistPayouts,
-  assignmentLog: mockAssignmentLog,
-  adminRevenue: mockAdminRevenue,
-  bookedDatesForArtist,
-};
