@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Image from "next/image";
 import type { Artist, Venue } from "@/data/mock";
 import { formatINR } from "@/data/mock";
+import { type BookingForm } from "@/lib/supabase-data";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 
@@ -48,11 +49,13 @@ export function ArtistBookingModal({
   initialDate,
   open,
   onClose,
+  onRequest,
 }: {
   artist: Artist | null;
   initialDate?: string;
   open: boolean;
   onClose: () => void;
+  onRequest?: (form: BookingForm) => void | Promise<void>;
 }) {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
@@ -74,11 +77,19 @@ export function ArtistBookingModal({
   const set = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
 
-  const advance = (event: FormEvent) => {
+  const advance = async (event: FormEvent) => {
     event.preventDefault();
     if (step === 1) {
       setStep(2);
     } else {
+      await onRequest?.({
+        clientName: form.name,
+        clientEmail: form.email,
+        clientPhone: form.phone,
+        type: "artist",
+        targetId: artist.id,
+        eventDate: form.date,
+      });
       setSubmitted(true);
       setStep(3);
     }
@@ -324,11 +335,13 @@ export function VenueRequestModal({
   initialDate,
   open,
   onClose,
+  onRequest,
 }: {
   venue: Venue | null;
   initialDate?: string;
   open: boolean;
   onClose: () => void;
+  onRequest?: (form: BookingForm) => void | Promise<void>;
 }) {
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({
@@ -348,8 +361,16 @@ export function VenueRequestModal({
   const set = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
+    await onRequest?.({
+      clientName: form.name,
+      clientEmail: form.email,
+      clientPhone: form.phone,
+      type: "venue",
+      targetId: venue.id,
+      eventDate: form.date,
+    });
     setSubmitted(true);
   };
 

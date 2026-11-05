@@ -1,16 +1,15 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, useEffect, type FormEvent } from "react";
 import Image from "next/image";
 import {
-  artists,
   isArtistFree,
   isVenueFree,
   publicEvents,
-  venues,
   type Artist,
   type Venue,
 } from "@/data/mock";
+import { fetchArtists, fetchVenues, insertBooking, type BookingForm } from "@/lib/supabase-data";
 import { BrandMark, Doodle, Stamp, Wordmark } from "@/components/ui/Brand";
 import { Icon } from "@/components/ui/Icon";
 import { ArtistBookingModal, VenueRequestModal } from "./BookingModals";
@@ -44,7 +43,9 @@ export function ClientView() {
   const [bookingDate, setBookingDate] = useState<string | undefined>(undefined);
   const [venueModal, setVenueModal] = useState<Venue | null>(null);
   const [venueDate, setVenueDate] = useState<string | undefined>(undefined);
-  const [featuredVenue, setFeaturedVenue] = useState(venues[0]);
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [featuredVenue, setFeaturedVenue] = useState<Venue | null>(null);
   const [venueSubmitted, setVenueSubmitted] = useState(false);
   const [venueForm, setVenueForm] = useState({
     date: "",
@@ -55,6 +56,25 @@ export function ClientView() {
     email: "",
   });
 
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const [fetchedArtists, fetchedVenues] = await Promise.all([
+        fetchArtists(),
+        fetchVenues(),
+      ]);
+      if (!cancelled) {
+        setArtists(fetchedArtists);
+        setVenues(fetchedVenues);
+        if (fetchedVenues.length > 0) setFeaturedVenue(fetchedVenues[0]);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const filteredArtists = useMemo(() => {
     return artists.filter((artist) => {
       if (category !== "All" && artist.category !== category) return false;
@@ -64,7 +84,7 @@ export function ClientView() {
       if (availableOn && !isArtistFree(artist, availableOn)) return false;
       return true;
     });
-  }, [category, budget, availableOn]);
+  }, [category, budget, availableOn, artists]);
 
   const openArtist = (artist: Artist, date?: string) => {
     setBookingArtist(artist);
@@ -76,8 +96,21 @@ export function ClientView() {
     setVenueDate(date);
   };
 
-  const submitVenueForm = (event: FormEvent) => {
+  const handleBookingRequest = async (form: BookingForm) => {
+    await insertBooking(form);
+  };
+
+  const submitVenueForm = async (event: FormEvent) => {
     event.preventDefault();
+    if (!featuredVenue) return;
+    await insertBooking({
+      clientName: venueForm.name,
+      clientEmail: venueForm.email,
+      clientPhone: "",
+      type: "venue",
+      targetId: featuredVenue.id,
+      eventDate: venueForm.date,
+    });
     setVenueSubmitted(true);
   };
 
@@ -442,7 +475,9 @@ export function ClientView() {
             <button
               type="button"
               className="text-link"
-              onClick={() => openArtist(artists[1])}
+              onClick={() => {
+                if (artists[1]) openArtist(artists[1]);
+              }}
             >
               Brief the studio
               <Icon name="arrow-up-right" size={15} />
@@ -481,37 +516,37 @@ export function ClientView() {
             <div className="venue-feature__visual">
               <div className="venue-feature__image">
                 <Image
-                  src={featuredVenue.image}
-                  alt={`${featuredVenue.name} venue`}
+                  src={featuredVenue?.image ?? "/images/event-08.png"}
+                  alt={`${featuredVenue?.name ?? "Venue"} venue`}
                   fill
                   sizes="(max-width: 900px) 100vw, 55vw"
                   style={{ objectFit: "cover" }}
                 />
                 <div className="venue-feature__caption">
                   <span className="eyebrow">Featured room</span>
-                  <h3>{featuredVenue.name}</h3>
-                  <p>{featuredVenue.area}, {featuredVenue.city}</p>
+                  <h3>{featuredVenue?.name}</h3>
+                  <p>{featuredVenue?.area}, {featuredVenue?.city}</p>
                 </div>
                 <span className="venue-feature__index">R / 01</span>
               </div>
-              <p className="venue-feature__blurb">{featuredVenue.blurb}</p>
+              <p className="venue-feature__blurb">{featuredVenue?.blurb}</p>
               <div className="venue-feature__specs">
-                {featuredVenue.specs.map((spec) => (
+                {featuredVenue?.specs?.map((spec) => (
                   <span key={spec}>{spec}</span>
                 ))}
               </div>
               <div className="venue-feature__ledger">
                 <div>
                   <span>Capacity</span>
-                  <strong>{featuredVenue.capacityLabel}</strong>
+                  <strong>{featuredVenue?.capacityLabel}</strong>
                 </div>
                 <div>
                   <span>Room type</span>
-                  <strong>{featuredVenue.type}</strong>
+                  <strong>{featuredVenue?.type}</strong>
                 </div>
                 <div>
                   <span>Starting rate</span>
-                  <strong>{featuredVenue.feeLabel}</strong>
+                  <strong>{featuredVenue?.feeLabel}</strong>
                 </div>
               </div>
             </div>
@@ -533,7 +568,7 @@ export function ClientView() {
                       <label className="field">
                         <span className="field__label">Room</span>
                         <select
-                          value={featuredVenue.id}
+                          value={featuredVenue?.id ?? ""}
                           onChange={(event) => {
                             const found = venues.find((venue) => venue.id === event.target.value);
                             if (found) setFeaturedVenue(found);
@@ -565,7 +600,7 @@ export function ClientView() {
                           required
                           min="20"
                           max="1500"
-                          placeholder={`Up to ${featuredVenue.capacity}`}
+                          placeholder={`Up to ${featuredVenue?.capacity}`}
                           value={venueForm.capacity}
                           onChange={(event) =>
                             setVenueForm((form) => ({ ...form, capacity: event.target.value }))
@@ -643,14 +678,14 @@ export function ClientView() {
                   <span className="eyebrow">Request received · VR-1098</span>
                   <h3>We are checking the room.</h3>
                   <p>
-                    {featuredVenue.name} on {venueForm.date || "the requested date"} for{" "}
+                    {featuredVenue?.name} on {venueForm.date || "the requested date"} for{" "}
                     {venueForm.capacity || "your party"}. A venue lead will reply with a hold and
                     the full technical sheet within one working day.
                   </p>
                   <div className="venue-form__success-grid">
                     <div>
                       <span>Room</span>
-                      <strong>{featuredVenue.name}</strong>
+                      <strong>{featuredVenue?.name}</strong>
                     </div>
                     <div>
                       <span>Date</span>
@@ -822,7 +857,9 @@ export function ClientView() {
               <button
                 type="button"
                 className="button button--marigold"
-                onClick={() => openArtist(artists[0])}
+                onClick={() => {
+                  if (artists[0]) openArtist(artists[0]);
+                }}
               >
                 Book an artist
                 <Icon name="arrow-up-right" size={17} />
@@ -830,7 +867,9 @@ export function ClientView() {
               <button
                 type="button"
                 className="button button--cream"
-                onClick={() => openVenue(venues[0])}
+                onClick={() => {
+                  if (venues[0]) openVenue(venues[0]);
+                }}
               >
                 Reserve a venue
                 <Icon name="building" size={17} />
@@ -883,6 +922,7 @@ export function ClientView() {
         initialDate={bookingDate}
         open={Boolean(bookingArtist)}
         onClose={() => setBookingArtist(null)}
+        onRequest={handleBookingRequest}
       />
       <VenueRequestModal
         key={`venue-${venueModal?.id ?? "closed"}-${venueDate ?? ""}`}
@@ -890,6 +930,7 @@ export function ClientView() {
         initialDate={venueDate}
         open={Boolean(venueModal)}
         onClose={() => setVenueModal(null)}
+        onRequest={handleBookingRequest}
       />
     </div>
   );

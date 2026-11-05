@@ -1,19 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import {
-  artists,
   dateKey,
   formatINR,
   getEventsOn,
   isArtistFree,
   isVenueFree,
   todayKey,
-  venues,
   type Artist,
   type Venue,
 } from "@/data/mock";
+import { fetchArtists, fetchVenues } from "@/lib/supabase-data";
 import { Icon } from "@/components/ui/Icon";
 import { monthMatrix, monthNames, weekdayLabels } from "@/lib/date";
 
@@ -36,6 +35,26 @@ export function AvailabilityCalendar({
   const [cursor, setCursor] = useState(new Date(2026, 10, 1));
   const [selected, setSelected] = useState("2026-11-21");
   const [filter, setFilter] = useState<CalendarFilter>("all");
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [venues, setVenues] = useState<Venue[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const [fetchedArtists, fetchedVenues] = await Promise.all([
+        fetchArtists(),
+        fetchVenues(),
+      ]);
+      if (!cancelled) {
+        setArtists(fetchedArtists);
+        setVenues(fetchedVenues);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();

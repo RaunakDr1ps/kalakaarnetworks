@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, useEffect, type FormEvent } from "react";
 import Image from "next/image";
 import {
-  clientBookings,
   clientInvoices,
   clientMessages,
   clientTimeline,
@@ -11,6 +10,7 @@ import {
   formatINR,
   todayKey,
 } from "@/data/mock";
+import { fetchClientBookings, type ClientBookingView } from "@/lib/supabase-data";
 import { monthMatrix, monthNames, weekdayLabels } from "@/lib/date";
 import { DashboardShell } from "./DashboardShell";
 import { Icon } from "@/components/ui/Icon";
@@ -29,7 +29,8 @@ const bookingSteps = ["Request", "Artist", "Contract", "Event day"];
 const productionDates = clientTimeline.map((item) => item.date);
 
 export function CustomerDashboard({ onClientView }: { onClientView: () => void }) {
-  const [selectedBooking, setSelectedBooking] = useState<(typeof clientBookings)[0] | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<ClientBookingView | null>(null);
+  const [bookings, setBookings] = useState<ClientBookingView[]>([]);
   const [invoiceState, setInvoiceState] = useState<Record<string, "Due" | "Paid">>(
     () => Object.fromEntries(clientInvoices.map((invoice) => [invoice.id, invoice.status]))
   );
@@ -40,11 +41,23 @@ export function CustomerDashboard({ onClientView }: { onClientView: () => void }
   const [cursor, setCursor] = useState(new Date(2026, 10, 1));
   const [selectedDate, setSelectedDate] = useState("2026-11-21");
 
+  useEffect(() => {
+    let cancelled = false;
+    fetchClientBookings().then((fetched) => {
+      if (!cancelled) {
+        setBookings(fetched);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
   const cells = useMemo(() => monthMatrix(year, month), [year, month]);
 
-  const selectedBookingEvents = clientBookings.filter((booking) => booking.date === selectedDate);
+  const selectedBookingEvents = bookings.filter((booking) => booking.date === selectedDate);
   const selectedProduction = clientTimeline.filter((item) => item.date === selectedDate);
   const selectedLabel = new Date(`${selectedDate}T12:00:00`).toLocaleDateString("en-IN", {
     weekday: "long",
@@ -152,7 +165,7 @@ export function CustomerDashboard({ onClientView }: { onClientView: () => void }
           </div>
 
           <div className="booking-cards">
-            {clientBookings.map((booking, index) => (
+            {bookings.map((booking, index) => (
               <article key={booking.id} className="booking-card">
                 <div className="booking-card__image">
                   <Image
@@ -316,7 +329,7 @@ export function CustomerDashboard({ onClientView }: { onClientView: () => void }
               <div className="client-calendar__grid">
                 {cells.map((cell, index) => {
                   const key = dateKey(cell.date);
-                  const booking = clientBookings.find((item) => item.date === key);
+                  const booking = bookings.find((item) => item.date === key);
                   const production = productionDates.includes(key);
                   return (
                     <button

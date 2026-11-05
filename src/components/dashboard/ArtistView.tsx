@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, useEffect, type FormEvent } from "react";
 import Image from "next/image";
 import {
   artistInquiries,
@@ -10,6 +10,7 @@ import {
   formatINR,
   todayKey,
 } from "@/data/mock";
+import { fetchGigs, type GigView } from "@/lib/supabase-data";
 import { monthMatrix, monthNames, weekdayLabels } from "@/lib/date";
 import { DashboardShell } from "./DashboardShell";
 import { Icon } from "@/components/ui/Icon";
@@ -46,6 +47,19 @@ export function ArtistView({ onClientView }: { onClientView: () => void }) {
   const [runOpen, setRunOpen] = useState(false);
   const [payoutOpen, setPayoutOpen] = useState(false);
   const [payoutSent, setPayoutSent] = useState(false);
+  const [gigs, setGigs] = useState<GigView[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchGigs().then((fetched) => {
+      if (!cancelled) {
+        setGigs(fetched);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -225,48 +239,7 @@ export function ArtistView({ onClientView }: { onClientView: () => void }) {
               <a href="#availability" className="text-link">View all</a>
             </div>
             <div className="gig-list">
-              {[
-                {
-                  date: "14 Nov",
-                  day: "Fri",
-                  title: "The Laugh Assembly",
-                  venue: "Urja Auditorium · Patna",
-                  time: "7:30 PM",
-                  fee: "₹1.8L",
-                  status: "Confirmed",
-                  image: "/images/event-08.png",
-                },
-                {
-                  date: "21 Nov",
-                  day: "Sat",
-                  title: "Sufi Under the Stars",
-                  venue: "The Old Mill · Patna",
-                  time: "6:45 PM",
-                  fee: "₹1.4L",
-                  status: "Confirmed",
-                  image: "/images/event-06.png",
-                },
-                {
-                  date: "11 Dec",
-                  day: "Fri",
-                  title: "Studio Nine screening",
-                  venue: "Maurya Lok · Patna",
-                  time: "6:00 PM",
-                  fee: "₹1.5L",
-                  status: "Contract due",
-                  image: "/images/event-03.png",
-                },
-                {
-                  date: "31 Dec",
-                  day: "Thu",
-                  title: "New Year's Eve",
-                  venue: "The Old Mill · Patna",
-                  time: "9:00 PM",
-                  fee: "₹2.5L",
-                  status: "Hold",
-                  image: "/images/event-01.png",
-                },
-              ].map((gig) => (
+              {gigs.map((gig) => (
                 <article key={`${gig.date}-${gig.title}`} className="gig-row">
                   <div className="gig-row__date">
                     <strong>{gig.date.split(" ")[0]}</strong>

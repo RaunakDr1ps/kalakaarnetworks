@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import {
   adminRevenue,
-  artists,
   assignmentLog,
   clientLeads,
   dateKey,
@@ -12,7 +11,9 @@ import {
   publicEvents,
   todayKey,
   venueRequests,
+  type Artist,
 } from "@/data/mock";
+import { fetchArtists } from "@/lib/supabase-data";
 import { monthMatrix, monthNames, weekdayLabels } from "@/lib/date";
 import { DashboardShell } from "./DashboardShell";
 import { Icon } from "@/components/ui/Icon";
@@ -35,7 +36,8 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
     () => Object.fromEntries(venueRequests.map((request) => [request.id, request.status]))
   );
   const [assigning, setAssigning] = useState<(typeof venueRequests)[0] | null>(null);
-  const [assignArtist, setAssignArtist] = useState(artists[0].id);
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [assignArtist, setAssignArtist] = useState("");
   const [assignments, setAssignments] = useState(assignmentLog);
   const [leadState, setLeadState] = useState<Record<string, string>>(
     () => Object.fromEntries(clientLeads.map((lead) => [lead.id, lead.status]))
@@ -47,6 +49,19 @@ export function AdminDashboard({ onClientView }: { onClientView: () => void }) {
     () => new Set(publicEvents.map((event) => event.id))
   );
   const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchArtists().then((fetched) => {
+      if (!cancelled) {
+        setArtists(fetched);
+        if (fetched.length > 0) setAssignArtist(fetched[0].id);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
