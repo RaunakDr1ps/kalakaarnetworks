@@ -5,7 +5,7 @@
 
 -- Core tables: artists, venues, bookings
 create table if not exists artists (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key,
   name text not null,
   category text not null,
   bio text,
@@ -16,7 +16,7 @@ create table if not exists artists (
 );
 
 create table if not exists venues (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key,
   name text not null,
   location text,
   capacity integer,
