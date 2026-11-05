@@ -7,11 +7,16 @@
 create table if not exists artists (
   id text primary key,
   name text not null,
+  stage_name text,
   category text not null,
-  bio text,
+  location text,
+  travel_availability text,
   rate integer,
-  image_url text,
-  availability_status text default 'available',
+  description text,
+  portfolio_links text,
+  contact_email text not null,
+  contact_phone text,
+  status text default 'pending',
   created_at timestamptz default now()
 );
 
@@ -51,15 +56,15 @@ create policy "Public read bookings" on bookings for select using (true);
 create policy "Public insert bookings" on bookings for insert with check (true);
 
 -- Seed data mirroring the demo roster (run once after creating the tables)
-insert into artists (id, name, category, bio, rate, image_url, availability_status) values
-  ('ananya-rao', 'Ananya Rao', 'Comedy', 'Sharp, bilingual stand-up about small-town ambition.', 180000, '/images/event-08.png', 'available'),
-  ('sufi-cartel', 'The Sufi Cartel', 'Music', 'Seven musicians, one long night. Qawwali roots through brass, bass and live ambient rig.', 320000, '/images/event-06.png', 'available'),
-  ('raghav-mehra', 'Raghav Mehra', 'Music', 'A voice built for rooms with bad air conditioning and good acoustics.', 240000, '/images/event-01.png', 'available'),
-  ('nrityagram-collective', 'Nrityagram Collective', 'Dance', 'Six dancers moving between Bharatanatyam grammar and contemporary floorwork.', 145000, '/images/event-04.png', 'available'),
-  ('kabir-night-shift', 'Kabir & The Night Shift', 'Music', 'Piano, upright bass, brushed drums and a saxophone that knows when to leave.', 110000, '/images/event-03.png', 'available'),
-  ('meera-vashisht', 'Meera Vashisht', 'Spoken Word', 'Stories from family albums and railway platforms, told with a poet is timing.', 75000, '/images/event-07.png', 'available'),
-  ('tara-electronica', 'Tara Electronica', 'Electronic', 'A live modular set that starts at a simmer and ends somewhere near sunrise.', 160000, '/images/event-05.png', 'available'),
-  ('bhaav-theatre', 'Bhaav Theatre', 'Theatre', 'A five-actor ensemble staging new Hindi writing.', 90000, '/images/event-02.png', 'available')
+insert into artists (id, name, stage_name, category, location, travel_availability, rate, description, portfolio_links, contact_email, contact_phone, status) values
+  ('ananya-rao', 'Ananya Rao', null, 'Comedy', 'Patna', 'Patna, Ranchi', 180000, 'Sharp, bilingual stand-up about small-town ambition.', null, 'ananya@example.com', '+91 98765 43210', 'available'),
+  ('sufi-cartel', 'The Sufi Cartel', 'The Sufi Cartel', 'Music', 'Delhi', 'Delhi, Kolkata, Mumbai', 320000, 'Seven musicians, one long night. Qawwali roots through brass, bass and live ambient rig.', null, 'sufi@example.com', '+91 98765 43210', 'available'),
+  ('raghav-mehra', 'Raghav Mehra', null, 'Music', 'Mumbai', 'Mumbai, Pune, Goa', 240000, 'A voice built for rooms with bad air conditioning and good acoustics.', null, 'raghav@example.com', '+91 98765 43210', 'available'),
+  ('nrityagram-collective', 'Nrityagram Collective', null, 'Dance', 'Bengaluru', 'Bengaluru, Chennai, Hyderabad', 145000, 'Six dancers moving between Bharatanatyam grammar and contemporary floorwork.', null, 'nrityagram@example.com', '+91 98765 43210', 'available'),
+  ('kabir-night-shift', 'Kabir & The Night Shift', null, 'Music', 'Kolkata', 'Kolkata, Delhi, Mumbai', 110000, 'Piano, upright bass, brushed drums and a saxophone that knows when to leave.', null, 'kabir@example.com', '+91 98765 43210', 'available'),
+  ('meera-vashisht', 'Meera Vashisht', null, 'Spoken Word', 'Jaipur', 'Jaipur, Delhi, Lucknow', 75000, 'Stories from family albums and railway platforms, told with a poet is timing.', null, 'meera@example.com', '+91 98765 43210', 'available'),
+  ('tara-electronica', 'Tara Electronica', null, 'Electronic', 'Goa', 'Goa, Mumbai, Bengaluru', 160000, 'A live modular set that starts at a simmer and ends somewhere near sunrise.', null, 'tara@example.com', '+91 98765 43210', 'available'),
+  ('bhaav-theatre', 'Bhaav Theatre', null, 'Theatre', 'Lucknow', 'Lucknow, Patna, Delhi', 90000, 'A five-actor ensemble staging new Hindi writing.', null, 'bhaav@example.com', '+91 98765 43210', 'available')
 on conflict (id) do nothing;
 
 insert into venues (id, name, location, capacity, rate, description) values

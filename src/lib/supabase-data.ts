@@ -327,17 +327,17 @@ export async function insertBooking(booking: BookingForm) {
 
 export interface ArtistApplication {
   id: string;
-  full_name: string;
+  name: string;
   stage_name: string | null;
   category: string;
   location: string | null;
   travel_availability: string | null;
   rate: number | null;
-  bio: string | null;
+  description: string | null;
   portfolio_links: string | null;
   contact_email: string;
   contact_phone: string | null;
-  availability_status: string | null;
+  status: string | null;
   created_at: string | null;
 }
 
@@ -356,24 +356,24 @@ export async function insertArtistApplication(application: {
   contactEmail: string;
   contactPhone: string;
 }) {
-  const slug = application.fullName
+  const slugBase = (application.stageName || application.fullName)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
   const payload: Partial<ArtistApplication> = {
-    id: slug,
-    full_name: application.fullName,
+    id: slugBase,
+    name: application.fullName,
     stage_name: application.stageName || null,
     category: application.category,
     location: application.location || null,
     travel_availability: application.travelAvailability || null,
     rate: application.rate || null,
-    bio: application.bio || null,
+    description: application.bio || null,
     portfolio_links: application.portfolioLinks || null,
     contact_email: application.contactEmail,
     contact_phone: application.contactPhone || null,
-    availability_status: "pending",
+    status: "pending",
   };
 
   if (!isSupabaseConfigured || !supabase) {

@@ -69,10 +69,15 @@ export function ArtistRegistrationModal({
       setSubmitted(true);
     } else {
       const raw = result.error ?? null;
-      const message =
-        raw && typeof raw === "object" && "message" in raw
-          ? String((raw as { message: unknown }).message)
-          : "We could not save your application. Please try again.";
+      let message = "We could not save your application. Please try again.";
+      if (raw && typeof raw === "object") {
+        const err = raw as { message?: string; code?: string; details?: string };
+        if (err.code === "23505") {
+          message = "An artist with this name already exists. Please use a different stage name.";
+        } else if (err.message) {
+          message = err.message;
+        }
+      }
       setServerError(message);
     }
   };
