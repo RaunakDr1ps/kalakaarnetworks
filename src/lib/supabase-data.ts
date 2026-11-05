@@ -337,7 +337,7 @@ export interface ArtistApplication {
   portfolio_links: string | null;
   contact_email: string;
   contact_phone: string | null;
-  status: string | null;
+  availability_status: string | null;
   created_at: string | null;
 }
 
@@ -373,7 +373,7 @@ export async function insertArtistApplication(application: {
     portfolio_links: application.portfolioLinks || null,
     contact_email: application.contactEmail,
     contact_phone: application.contactPhone || null,
-    status: "pending",
+    availability_status: "pending",
   };
 
   if (!isSupabaseConfigured || !supabase) {

@@ -44,6 +44,23 @@ export function ArtistRegistrationModal({
   const set = (key: keyof typeof form, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
 
+  const resetForm = () => {
+    setForm({
+      fullName: "",
+      stageName: "",
+      category: categories[0],
+      location: cities[0],
+      travelAvailability: "",
+      rate: "",
+      bio: "",
+      portfolioLinks: "",
+      contactEmail: "",
+      contactPhone: "",
+    });
+    setServerError(null);
+    setSubmitted(false);
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     setServerError(null);
@@ -51,33 +68,42 @@ export function ArtistRegistrationModal({
 
     const rate = Number(form.rate) || 0;
 
-    const result = await insertArtistApplication({
-      fullName: form.fullName,
-      stageName: form.stageName,
-      category: form.category,
-      location: form.location,
-      travelAvailability: form.travelAvailability,
-      rate,
-      bio: form.bio,
-      portfolioLinks: form.portfolioLinks,
-      contactEmail: form.contactEmail,
-      contactPhone: form.contactPhone,
-    });
+    try {
+      const result = await insertArtistApplication({
+        fullName: form.fullName,
+        stageName: form.stageName,
+        category: form.category,
+        location: form.location,
+        travelAvailability: form.travelAvailability,
+        rate,
+        bio: form.bio,
+        portfolioLinks: form.portfolioLinks,
+        contactEmail: form.contactEmail,
+        contactPhone: form.contactPhone,
+      });
 
-    setSending(false);
-    if (result.success) {
-      setSubmitted(true);
-    } else {
-      const raw = result.error ?? null;
-      let message = "We could not save your application. Please try again.";
-      if (raw && typeof raw === "object") {
-        const err = raw as { message?: string; code?: string; details?: string };
-        if (err.code === "23505") {
-          message = "An artist with this name already exists. Please use a different stage name.";
-        } else if (err.message) {
-          message = err.message;
+      if (result.success) {
+        resetForm();
+        setSubmitted(true);
+      } else {
+        setSending(false);
+        const raw = result.error ?? null;
+        let message = "We could not save your application. Please try again.";
+        if (raw && typeof raw === "object") {
+          const err = raw as { message?: string; code?: string };
+          if (err.code === "23505") {
+            message =
+              "An artist with this name already exists. Please use a different stage name.";
+          } else if (err.message) {
+            message = err.message;
+          }
         }
+        setServerError(message);
       }
+    } catch (error) {
+      setSending(false);
+      const message =
+        error instanceof Error ? error.message : "An unexpected error occurred.";
       setServerError(message);
     }
   };
