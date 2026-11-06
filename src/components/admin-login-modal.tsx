@@ -31,7 +31,7 @@ export function AdminLoginModal({
       onLoginSuccess();
     } else {
       const raw = result.error ?? null;
-      let message = "Invalid email or password. Try aarav@kalakaarstudios.in / kalakaar2026";
+      let message = "Invalid email or password.";
       if (raw instanceof Error) {
         message = raw.message;
       } else if (raw && typeof raw === "object" && "message" in raw) {
@@ -42,8 +42,8 @@ export function AdminLoginModal({
   };
 
   return (
-    <Modal open={open} onClose={onClose} size="small" labelledBy="admin-login-title">
-      <div className="admin-login-modal">
+    <Modal open={open} onClose={onClose} size="medium" labelledBy="admin-login-title">
+      <div className="admin-login-card">
         <div className="admin-login-modal__head">
           <span className="eyebrow">Admin Access</span>
           <h2 id="admin-login-title">Sign in to the Control Room</h2>
@@ -54,53 +54,40 @@ export function AdminLoginModal({
         </div>
 
         {serverError && (
-          <div className="admin-login-modal__error">
+          <div className="login-error">
             <Icon name="close" size={15} />
             <span>{serverError}</span>
           </div>
         )}
 
-        <form onSubmit={submit} className="admin-login-form">
-          <label className="field">
-            <span className="field__label">Email</span>
+        <form onSubmit={submit} className="login-form">
+          <label className="login-field">
+            <span className="login-field__label">Email</span>
             <input
               type="email"
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="aarav@kalakaarstudios.in"
+              placeholder="you@studio.com"
+              className="login-input"
             />
           </label>
-          <label className="field">
-            <span className="field__label">Password</span>
+          <label className="login-field">
+            <span className="login-field__label">Password</span>
             <input
               type="password"
               required
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="••••••••"
+              className="login-input"
             />
           </label>
 
-          <div className="modal-actions">
-            <button
-              type="button"
-              className="button button--ghost"
-              onClick={onClose}
-              disabled={sending}
-            >
-              Cancel
-            </button>
-            <button type="submit" className="button button--ink" disabled={sending}>
-              {sending ? "Signing in…" : "Sign in"}
-              <Icon name="arrow-up-right" size={15} />
-            </button>
-          </div>
+          <button type="submit" className="login-submit" disabled={sending}>
+            {sending ? "Signing in…" : "Sign in"}
+          </button>
         </form>
-
-        <div className="admin-login-modal__hint">
-          Demo credentials: aarav@kalakaarstudios.in / kalakaar2026
-        </div>
       </div>
     </Modal>
   );
