@@ -134,9 +134,6 @@ export function DashboardShell({
             <button type="button" className="dash-icon-btn" aria-label="Search">
               <Icon name="search" size={18} />
             </button>
-            <button type="button" className="dash-icon-btn has-dot" aria-label="Notifications">
-              <Icon name="bell" size={18} />
-            </button>
             <div className="dash-topbar__date">
               <span>Wed, 4 Nov</span>
               <strong>2026</strong>

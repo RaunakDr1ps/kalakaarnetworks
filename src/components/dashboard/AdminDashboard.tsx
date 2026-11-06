@@ -84,11 +84,8 @@ export function AdminDashboard({
   const [loading, setLoading] = useState(true);
 
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState<{ id: string; title: string; time: string; read: boolean }[]>([
-    { id: "n1", title: "New Artist Application received", time: "10:15 AM", read: false },
-    { id: "n2", title: "New Venue Booking submitted", time: "09:42 AM", read: false },
-    { id: "n3", title: "Payout request approved", time: "Yesterday", read: true },
-  ]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [notifications, setNotifications] = useState<{ id: string; title: string; time: string; read: boolean }[]>([]);
 
   const [pendingArtists, setPendingArtists] = useState<SupabaseArtist[]>([]);
 
@@ -115,6 +112,28 @@ export function AdminDashboard({
         setMonthlyRevenue(fetchedMonthly);
         setProductionBoard(fetchedBoard);
         setPendingArtists(fetchedPending);
+
+        const dynamicNotifications: { id: string; title: string; time: string; read: boolean }[] = [];
+        fetchedPending.forEach((a) => {
+          dynamicNotifications.push({
+            id: `artist-${a.id}`,
+            title: `New Artist Application from ${a.name}`,
+            time: new Date(a.created_at ?? Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            read: false,
+          });
+        });
+        productionBoard
+          .filter((b) => b.status === "pending" || b.status === "new")
+          .forEach((b) => {
+            dynamicNotifications.push({
+              id: `booking-${b.id}`,
+              title: `New ${b.type === "artist" ? "Artist" : "Venue"} Booking request`,
+              time: new Date(b.event_date ?? Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              read: false,
+            });
+          });
+        setNotifications(dynamicNotifications);
+
         if (fetchedArtists.length > 0) setAssignArtist(fetchedArtists[0].id);
         setLoading(false);
       }
@@ -123,7 +142,7 @@ export function AdminDashboard({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [productionBoard]);
 
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -245,6 +264,62 @@ export function AdminDashboard({
   const ovr = metrics?.openVenueRequests ?? 0;
   const lc = metrics?.leadConversion ?? 0;
 
+  const searchLower = searchQuery.toLowerCase();
+
+  const filteredArtists = pendingArtists.filter((a) => {
+    const q = searchLower;
+    if (!q) return true;
+    return (
+      (a.name ?? "").toLowerCase().includes(q) ||
+      (a.stage_name ?? "").toLowerCase().includes(q) ||
+      (a.category ?? "").toLowerCase().includes(q) ||
+      (a.location ?? "").toLowerCase().includes(q) ||
+      (a.contact_email ?? "").toLowerCase().includes(q) ||
+      (a.contact_phone ?? "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredBookings = productionBoard.filter((b) => {
+    const q = searchLower;
+    if (!q) return true;
+    return (
+      b.client_name.toLowerCase().includes(q) ||
+      b.target_id.toLowerCase().includes(q) ||
+      b.event_date.includes(q) ||
+      b.status.toLowerCase().includes(q)
+    );
+  });
+
+  const filteredProfiles = profiles.filter((p) => {
+    const q = searchLower;
+    if (!q) return true;
+    return (
+      (p.full_name ?? "").toLowerCase().includes(q) ||
+      (p.email ?? "").toLowerCase().includes(q) ||
+      p.role.toLowerCase().includes(q)
+    );
+  });
+
+  const renderedProfileRows = filteredProfiles.length > 0 ? filteredProfiles.map((profile) => (
+    <tr key={profile.id}>
+      <td>
+        <strong>{profile.full_name || "Unnamed user"}</strong>
+      </td>
+      <td>{profile.email}</td>
+      <td>
+        <span className={`role-badge role-badge--${profile.role}`}>
+          {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
+        </span>
+      </td>
+    </tr>
+  )) : (
+    <tr>
+      <td colSpan={4} className="table-empty">
+        {searchQuery ? "No matching team members." : "No team members in Supabase profiles table."}
+      </td>
+    </tr>
+                  );
+
   const pageContent = loading ? (
     <div className="dash-page" id="admin-overview">
       <div className="empty-state">
@@ -266,6 +341,16 @@ export function AdminDashboard({
             </p>
           </div>
           <div className="dash-page-head__actions">
+            <label className="search-field">
+              <span className="search-field__label">Search</span>
+              <input
+                type="text"
+                placeholder="Search artists, bookings, team…"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="search-input"
+              />
+            </label>
             <button
               type="button"
               className="button button--line"
@@ -495,7 +580,7 @@ export function AdminDashboard({
                 </tr>
               </thead>
               <tbody>
-                {productionBoard.map((booking) => {
+                {filteredBookings.map((booking) => {
                   const status = requestState[booking.id] || booking.status;
                   return (
                     <tr key={booking.id}>
@@ -578,7 +663,7 @@ export function AdminDashboard({
                     </tr>
                   );
                 })}
-                {productionBoard.length === 0 && (
+                {filteredBookings.length === 0 && (
                   <tr>
                     <td colSpan={7} className="table-empty">
                       No requests in this state. The desk is clear.
@@ -589,7 +674,7 @@ export function AdminDashboard({
             </table>
             <div className="requests-footer">
               <span>
-                Showing {productionBoard.length} upcoming
+                Showing {filteredBookings.length} of {productionBoard.length} upcoming
               </span>
               <span>Response target · under 4 working hours</span>
             </div>
@@ -811,7 +896,7 @@ export function AdminDashboard({
               <span className="eyebrow">Talent onboarding</span>
               <h2>Artist Applications</h2>
             </div>
-            <span className="panel__count">{pendingArtists.length} pending</span>
+            <span className="panel__count">{filteredArtists.length} of {pendingArtists.length} pending</span>
           </div>
           <div className="admin-table-wrap">
             <table className="admin-table">
@@ -827,14 +912,16 @@ export function AdminDashboard({
                 </tr>
               </thead>
               <tbody>
-                {pendingArtists.length === 0 ? (
+                {filteredArtists.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="table-empty">
-                      No pending artist applications.
+                      searchQuery
+                        ? &quot;No matching artist applications.&quot;
+                        : &quot;No pending artist applications.&quot;
                     </td>
                   </tr>
                 ) : (
-                  pendingArtists.map((artist) => (
+                  filteredArtists.map((artist) => (
                     <tr key={artist.id}>
                       <td>
                         <strong>{artist.name}</strong>
@@ -900,7 +987,7 @@ export function AdminDashboard({
                 <span className="eyebrow">Team management</span>
                 <h2>Team & Roles</h2>
               </div>
-              <span className="panel__count">{profiles.length} members</span>
+              <span className="panel__count">{filteredProfiles.length} of {profiles.length} members</span>
             </div>
             <div className="admin-table-wrap">
               <table className="admin-table">
@@ -1099,35 +1186,11 @@ export function AdminDashboard({
                   <th>Role</th>
                 </tr>
               </thead>
-              <tbody>
-                {profiles.map((profile) => (
-                  <tr key={profile.id}>
-                    <td>
-                      <strong>{profile.full_name || "Unnamed user"}</strong>
-                    </td>
-                    <td>{profile.email}</td>
-                    <td>
-                      <span className={`role-badge role-badge--${profile.role}`}>
-                        {profile.role.charAt(0).toUpperCase() +
-                          profile.role.slice(1)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-                {profiles.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="table-empty">
-                      No team members yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
+              <tbody>{renderedProfileRows}</tbody>
             </table>
           </div>
         </div>
       </Modal>
-
-      {/* Notification Drawer */}
       {notificationsOpen && (
         <div className="notification-drawer-overlay" onClick={() => setNotificationsOpen(false)} />
       )}
@@ -1234,3 +1297,11 @@ function AdminSessionGate({ session }: { session: AuthSession | null }) {
   }
   return null;
 }
+
+
+
+
+
+
+
+
