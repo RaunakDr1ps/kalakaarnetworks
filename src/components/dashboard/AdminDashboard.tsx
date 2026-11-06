@@ -1,28 +1,43 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import Image from "next/image";
 import {
-  adminRevenue,
-  assignmentLog,
-  clientLeads,
-  dateKey,
-  formatINR,
-  publicEvents,
-  todayKey,
-  venueRequests,
-  type Artist,
-} from "@/data/mock";
-import { fetchArtists, fetchProfiles, updateProfileRole, type SupabaseProfile, type AuthSession, type UserRole } from "@/lib/supabase-data";
+  fetchAdminMetrics,
+  fetchMonthlyRevenue,
+  fetchProductionBoard,
+  fetchArtists,
+  fetchProfiles,
+  updateProfileRole,
+  type AdminMetrics,
+  type MonthlyRevenue,
+  type ProductionBoardItem,
+  type SupabaseProfile,
+  type AuthSession,
+  type UserRole,
+} from "@/lib/supabase-data";
 import { monthMatrix, monthNames, weekdayLabels } from "@/lib/date";
 import { DashboardShell } from "./DashboardShell";
-import { Icon } from "@/components/ui/Icon";
+import { Icon, type IconName } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
 import { Toast } from "@/components/ui/Toast";
 
+export type Artist = {
+  id: string;
+  name: string;
+  category: string;
+  feeLabel: string;
+};
+
+const formatINR = (value: number) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(value);
+
 const navItems = [
   { label: "Overview", href: "#admin-overview", icon: "grid" as const },
-  { label: "Requests", href: "#requests", icon: "building" as const, badge: "7" },
+  { label: "Requests", href: "#requests", icon: "building" as const },
   { label: "Assignments", href: "#assignments", icon: "mic" as const },
   { label: "Leads", href: "#leads", icon: "users" as const },
   { label: "Calendar", href: "#admin-calendar", icon: "calendar" as const },
@@ -38,27 +53,25 @@ export function AdminDashboard({
   session: AuthSession | null;
 }) {
   const [requestFilter, setRequestFilter] = useState<RequestFilter>("All");
-  const [requestState, setRequestState] = useState<Record<string, string>>(
-    () => Object.fromEntries(venueRequests.map((request) => [request.id, request.status]))
-  );
-  const [assigning, setAssigning] = useState<(typeof venueRequests)[0] | null>(null);
+  const [requestState, setRequestState] = useState<Record<string, string>>({});
+  const [assigning, setAssigning] = useState<{ id: string; venue: string; date: string } | null>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [assignArtist, setAssignArtist] = useState("");
-  const [assignments, setAssignments] = useState(assignmentLog);
-  const [leadState, setLeadState] = useState<Record<string, string>>(
-    () => Object.fromEntries(clientLeads.map((lead) => [lead.id, lead.status]))
-  );
+  const [assignments, setAssignments] = useState<{ time: string; title: string; detail: string; kind: string }[]>([]);
   const [metric, setMetric] = useState<"both" | "booked" | "collected">("both");
-  const [cursor, setCursor] = useState(new Date(2026, 10, 1));
-  const [selectedDate, setSelectedDate] = useState("2026-11-21");
-  const [listed, setListed] = useState<Set<string>>(
-    () => new Set(publicEvents.map((event) => event.id))
-  );
+  const [cursor, setCursor] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState("");
+  const [listed, setListed] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
   const [teamTab, setTeamTab] = useState(false);
   const [profiles, setProfiles] = useState<SupabaseProfile[]>([]);
   const [editingRole, setEditingRole] = useState<{ id: string; role: UserRole } | null>(null);
   const [roleSaving, setRoleSaving] = useState(false);
+
+  const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
+  const [monthlyRevenue, setMonthlyRevenue] = useState<MonthlyRevenue[]>([]);
+  const [productionBoard, setProductionBoard] = useState<ProductionBoardItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const userRole = session?.profile?.role ?? "artist";
   const isAdmin = userRole === "admin";
@@ -67,14 +80,22 @@ export function AdminDashboard({
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [fetchedArtists, fetchedProfiles] = await Promise.all([
-        fetchArtists(),
-        fetchProfiles(),
-      ]);
+      const [fetchedArtists, fetchedProfiles, fetchedMetrics, fetchedMonthly, fetchedBoard] =
+        await Promise.all([
+          fetchArtists(),
+          fetchProfiles(),
+          fetchAdminMetrics(),
+          fetchMonthlyRevenue(),
+          fetchProductionBoard(),
+        ]);
       if (!cancelled) {
         setArtists(fetchedArtists);
         setProfiles(fetchedProfiles);
+        setMetrics(fetchedMetrics);
+        setMonthlyRevenue(fetchedMonthly);
+        setProductionBoard(fetchedBoard);
         if (fetchedArtists.length > 0) setAssignArtist(fetchedArtists[0].id);
+        setLoading(false);
       }
     };
     load();
@@ -87,16 +108,18 @@ export function AdminDashboard({
   const month = cursor.getMonth();
   const cells = useMemo(() => monthMatrix(year, month), [year, month]);
 
-  const filteredRequests = venueRequests.filter(
-    (request) => requestFilter === "All" || requestState[request.id] === requestFilter
-  );
+  const selectedLabel = selectedDate
+    ? new Date(`${selectedDate}T12:00:00`).toLocaleDateString("en-IN", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      })
+    : "";
 
-  const selectedEvents = publicEvents.filter((event) => event.date === selectedDate);
-  const selectedLabel = new Date(`${selectedDate}T12:00:00`).toLocaleDateString("en-IN", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+  const dayEventsForSelected = useMemo(() => {
+    if (!selectedDate) return [];
+    return productionBoard.filter((e) => e.eventDate === selectedDate);
+  }, [productionBoard, selectedDate]);
 
   const setRequest = (id: string, status: string, message: string) => {
     if (!isAdmin && !isManager) return;
@@ -132,12 +155,6 @@ export function AdminDashboard({
     });
   };
 
-  const leadAction = (id: string, status: string, message: string) => {
-    if (!isAdmin && !isManager) return;
-    setLeadState((current) => ({ ...current, [id]: status }));
-    setToast(message);
-  };
-
   const handleRoleChange = (id: string, role: string) => {
     if (!isAdmin) return;
     setEditingRole({ id, role: role as "admin" | "manager" | "artist" });
@@ -146,7 +163,7 @@ export function AdminDashboard({
   const saveRole = async () => {
     if (!editingRole) return;
     setRoleSaving(true);
-    const result = await updateProfileRole(editingRole.id, editingRole.role as "admin" | "manager" | "artist");
+    const result = await updateProfileRole(editingRole.id, editingRole.role);
     setRoleSaving(false);
     if (result.success) {
       setProfiles((current) =>
@@ -159,49 +176,49 @@ export function AdminDashboard({
     setEditingRole(null);
   };
 
-  const maxRevenue = 24;
+  const maxRevenue = Math.max(...monthlyRevenue.map((m) => m.booked), 24);
 
-  return (
-    <DashboardShell
-      role="Admin"
-      workspace="Control room"
-      userName={session?.profile?.full_name || "Studio User"}
-      userMeta={`${userRole.charAt(0).toUpperCase() + userRole.slice(1)} · Kalakaar Studios`}
-      initials={session?.profile?.full_name?.split(" ").map((n) => n[0]).join("") || "SS"}
-      navItems={[
-        ...navItems,
-        ...(isAdmin ? [{ label: "Team & Roles", href: "#team-roles", icon: "users" as const, badge: profiles.length.toString() }] : []),
-      ]}
-      current="Overview"
-      onClientView={onClientView}
-      topRight={
-        <>
-          <span className="top-status top-status--admin">
-            <i /> {session?.profile?.role}
-          </span>
-          <button type="button" className="text-link text-link--small" onClick={() => setTeamTab(true)}>
-            Manage Team
-          </button>
-        </>
-      }
-    >
-      {session && <AdminSessionGate session={session} />}
+  const bv = metrics?.bookableValue ?? 0;
+  const cl = metrics?.collected ?? 0;
+  const tb = metrics?.totalBookings ?? 0;
+  const cb = metrics?.confirmedBookings ?? 0;
+  const ovr = metrics?.openVenueRequests ?? 0;
+  const lc = metrics?.leadConversion ?? 0;
+
+  const pageContent = loading ? (
+    <div className="dash-page" id="admin-overview">
+      <div className="empty-state">
+        <div className="empty-state__mark"><Icon name="compass" size={24} /></div>
+        <h2>Loading control room…</h2>
+        <p>Fetching live data from the studio database.</p>
+      </div>
+    </div>
+  ) : (
+    <>
       <div className="dash-page" id="admin-overview">
         <div className="dash-page-head">
           <div>
-            <span className="eyebrow">Wednesday, 4 November · 09:42 IST</span>
+            <span className="eyebrow">Kalakaar Networks · Control room</span>
             <h1>Everything on the desk.</h1>
             <p>
-              Seven venue requests, two holds expiring today and a full November
-              calendar. The studio is moving.
+              Live data from the Supabase database. Metrics, charts, and the
+              production board update from booking records.
             </p>
           </div>
           <div className="dash-page-head__actions">
-            <button type="button" className="button button--line" onClick={() => setToast("Daily operations report exported as PDF.")}>
+            <button
+              type="button"
+              className="button button--line"
+              onClick={() => setToast("Daily operations report exported as PDF.")}
+            >
               <Icon name="download" size={16} />
               Export report
             </button>
-            <button type="button" className="button button--ink" onClick={onClientView}>
+            <button
+              type="button"
+              className="button button--ink"
+              onClick={onClientView}
+            >
               Open booking site
               <Icon name="arrow-up-right" size={16} />
             </button>
@@ -210,24 +227,28 @@ export function AdminDashboard({
 
         <div className="dash-stat-strip dash-stat-strip--admin">
           <div>
-            <span>November GMV</span>
-            <strong>₹21.6L</strong>
-            <em>↑ 17.4% month on month</em>
+            <span>Bookable value</span>
+            <strong>{formatINR(bv)}</strong>
+            <em>Sum of all booking amounts</em>
           </div>
           <div>
             <span>Collected</span>
-            <strong>₹12.3L</strong>
-            <em>57% of booked</em>
+            <strong>{formatINR(cl)}</strong>
+            <em>
+              {tb > 0 ? `${Math.round((cl / bv) * 100)}% of booked` : "0% of booked"}
+            </em>
           </div>
           <div>
             <span>Open venue requests</span>
-            <strong>07</strong>
-            <em>2 expire today</em>
+            <strong>{ovr}</strong>
+            <em>Bookings with status pending</em>
           </div>
           <div>
             <span>Lead conversion</span>
-            <strong>68%</strong>
-            <em>last 30 days</em>
+            <strong>{lc}%</strong>
+            <em>
+              {tb > 0 ? `${cb} of ${tb} confirmed` : "No bookings yet"}
+            </em>
           </div>
         </div>
 
@@ -258,42 +279,50 @@ export function AdminDashboard({
               </div>
             </div>
 
-            <div className="revenue-chart">
-              <div className="revenue-chart__scale" aria-hidden="true">
-                <span>₹24L</span>
-                <span>₹16L</span>
-                <span>₹8L</span>
-                <span>₹0</span>
+            {monthlyRevenue.length === 0 ? (
+              <div className="empty-state" style={{ padding: "40px 24px" }}>
+                <div className="empty-state__mark"><Icon name="ticket" size={24} /></div>
+                <h2>No booking data available yet</h2>
+                <p>
+                  Once bookings are recorded in Supabase, revenue charts will appear here.
+                </p>
               </div>
-              <div className="revenue-chart__plot">
-                <div className="revenue-chart__grid" aria-hidden="true">
-                  <i /><i /><i /><i />
+            ) : (
+              <div className="revenue-chart">
+                <div className="revenue-chart__scale" aria-hidden="true">
+                  <span>₹{Math.ceil(maxRevenue / 100000)}L</span>
+                  <span>₹0</span>
                 </div>
-                <div className="revenue-bars">
-                  {adminRevenue.map((item) => (
-                    <div key={item.month} className="revenue-bar">
-                      <div className="revenue-bar__columns">
-                        {(metric === "both" || metric === "booked") && (
-                          <span
-                            className="revenue-bar__booked"
-                            style={{ height: `${(item.booked / maxRevenue) * 100}%` }}
-                            title={`Booked ₹${item.booked}L`}
-                          />
-                        )}
-                        {(metric === "both" || metric === "collected") && (
-                          <span
-                            className="revenue-bar__collected"
-                            style={{ height: `${(item.collected / maxRevenue) * 100}%` }}
-                            title={`Collected ₹${item.collected}L`}
-                          />
-                        )}
+                <div className="revenue-chart__plot">
+                  <div className="revenue-chart__grid" aria-hidden="true">
+                    <i /><i /><i /><i />
+                  </div>
+                  <div className="revenue-bars">
+                    {monthlyRevenue.map((item) => (
+                      <div key={item.month} className="revenue-bar">
+                        <div className="revenue-bar__columns">
+                          {(metric === "both" || metric === "booked") && (
+                            <span
+                              className="revenue-bar__booked"
+                              style={{ height: `${(item.booked / maxRevenue) * 100}%` }}
+                              title={`Booked ${formatINR(item.booked)}`}
+                            />
+                          )}
+                          {(metric === "both" || metric === "collected") && (
+                            <span
+                              className="revenue-bar__collected"
+                              style={{ height: `${(item.collected / maxRevenue) * 100}%` }}
+                              title={`Collected ${formatINR(item.collected)}`}
+                            />
+                          )}
+                        </div>
+                        <span className="revenue-bar__label">{item.month}</span>
                       </div>
-                      <span className="revenue-bar__label">{item.month}</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className="revenue-footer">
               <div className="revenue-key">
@@ -301,9 +330,22 @@ export function AdminDashboard({
                 <span><i className="key-collected" /> Collected</span>
               </div>
               <div className="revenue-summary">
-                <div><span>Outstanding</span><strong>₹9.3L</strong></div>
-                <div><span>Avg. booking value</span><strong>₹1.42L</strong></div>
-                <div><span>Forecast close</span><strong>₹24.8L</strong></div>
+                <div>
+                  <span>Outstanding</span>
+                  <strong>{formatINR(Math.max(0, bv - cl))}</strong>
+                </div>
+                <div>
+                  <span>Avg. booking value</span>
+                  <strong>
+                    {tb > 0
+                      ? formatINR(Math.round(bv / tb))
+                      : "₹0"}
+                  </strong>
+                </div>
+                <div>
+                  <span>Forecast close</span>
+                  <strong>{formatINR(bv)}</strong>
+                </div>
               </div>
             </div>
           </section>
@@ -314,30 +356,41 @@ export function AdminDashboard({
                 <span className="eyebrow">Today</span>
                 <h2>Production board</h2>
               </div>
-              <span className="panel__count">4 live</span>
+              <span className="panel__count">{productionBoard.length} upcoming</span>
             </div>
-            <div className="ops-list">
-              {[
-                { time: "10:00", title: "Sufi Cartel advance", detail: "₹2.4L expected · KS-2048", status: "Due today", icon: "rupee" as const },
-                { time: "12:30", title: "Urja site visit", detail: "Bihar Chamber · 320 guests", status: "Confirmed", icon: "pin" as const },
-                { time: "15:00", title: "Laugh Assembly tech", detail: "Urja Auditorium · Stage A", status: "In progress", icon: "stage" as const },
-                { time: "18:00", title: "Old Mill load-in", detail: "Sound rig · 3 trucks", status: "Scheduled", icon: "building" as const },
-              ].map((item) => (
-                <article key={item.time} className="ops-row">
-                  <span className="ops-row__time">{item.time}</span>
-                  <span className="ops-row__icon"><Icon name={item.icon} size={16} /></span>
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.detail}</p>
-                  </div>
-                  <em>{item.status}</em>
-                </article>
-              ))}
-            </div>
+            {productionBoard.length === 0 ? (
+              <div className="empty-state" style={{ padding: "30px 24px" }}>
+                <div className="empty-state__mark"><Icon name="calendar" size={20} /></div>
+                <h2>No upcoming bookings</h2>
+                <p>
+                  When bookings are created with future event dates, they will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="ops-list">
+                {productionBoard.map((item) => (
+                  <article key={item.id} className="ops-row">
+                    <span className="ops-row__time">{item.time}</span>
+                    <span className="ops-row__icon">
+                      <Icon name={item.icon as IconName} size={16} />
+                    </span>
+                    <div>
+                      <strong>{item.title}</strong>
+                      <p>{item.detail}</p>
+                    </div>
+                    <em>{item.status}</em>
+                  </article>
+                ))}
+              </div>
+            )}
             <div className="ops-panel__footer">
-              <span><i /> 2 holds expire by 6pm</span>
-              <button type="button" className="text-link text-link--small" onClick={() => setToast("Hold queue opened.")}>
-                Review holds
+              <span><i /> Upcoming bookings from the database</span>
+              <button
+                type="button"
+                className="text-link text-link--small"
+                onClick={() => setToast("Production board refreshed.")}
+              >
+                Refresh
                 <Icon name="arrow-right" size={14} />
               </button>
             </div>
@@ -351,18 +404,20 @@ export function AdminDashboard({
               <h2>Incoming room requests</h2>
             </div>
             <div className="segmented segmented--small" role="tablist" aria-label="Filter venue requests">
-              {(["All", "New", "Reviewing", "Approved"] as RequestFilter[]).map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  role="tab"
-                  aria-selected={requestFilter === filter}
-                  className={requestFilter === filter ? "is-active" : ""}
-                  onClick={() => setRequestFilter(filter)}
-                >
-                  {filter}
-                </button>
-              ))}
+              {(["All", "New", "Reviewing", "Approved"] as RequestFilter[]).map(
+                (filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    role="tab"
+                    aria-selected={requestFilter === filter}
+                    className={requestFilter === filter ? "is-active" : ""}
+                    onClick={() => setRequestFilter(filter)}
+                  >
+                    {filter}
+                  </button>
+                )
+              )}
             </div>
           </div>
 
@@ -372,28 +427,34 @@ export function AdminDashboard({
                 <tr>
                   <th>Request</th>
                   <th>Client</th>
-                  <th>Room</th>
+                  <th>Target</th>
                   <th>Date</th>
-                  <th>Capacity</th>
                   <th>Value</th>
                   <th>Status</th>
                   <th aria-label="Actions" />
                 </tr>
               </thead>
               <tbody>
-                {filteredRequests.map((request) => {
-                  const status = requestState[request.id];
+                {productionBoard.map((booking) => {
+                  const status = requestState[booking.id] || booking.status;
                   return (
-                    <tr key={request.id}>
-                      <td><span className="table-id">{request.id}</span></td>
+                    <tr key={booking.id}>
                       <td>
-                        <strong>{request.client}</strong>
-                        <span className="table-sub">{request.logistics}</span>
+                        <span className="table-id">{booking.id.slice(0, 8)}</span>
                       </td>
-                      <td>{request.venue}</td>
-                      <td>{request.date}</td>
-                      <td>{request.capacity}</td>
-                      <td><strong>{formatINR(request.budget)}</strong></td>
+                      <td>
+                        <strong>{booking.client_name}</strong>
+                        <span className="table-sub">
+                          {booking.type === "artist"
+                            ? "Artist booking"
+                            : "Venue request"}
+                        </span>
+                      </td>
+                      <td>{booking.target_id}</td>
+                      <td>{booking.event_date}</td>
+                      <td>
+                        <strong>{formatINR(0)}</strong>
+                      </td>
                       <td>
                         <span className={`request-status request-status--${status.toLowerCase()}`}>
                           {status}
@@ -401,36 +462,54 @@ export function AdminDashboard({
                       </td>
                       <td>
                         <div className="table-actions">
-                          {(status === "New" || status === "Reviewing") && (
+                          {(status === "new" || status === "pending") && (
                             <>
                               <button
                                 type="button"
                                 className="button button--ink button--tiny"
-                                onClick={() => setRequest(request.id, "Approved", `${request.id} approved. Contract draft queued.`)}
+                                onClick={() =>
+                                  setRequest(
+                                    booking.id,
+                                    "confirmed",
+                                    `${booking.id} confirmed.`
+                                  )
+                                }
                                 disabled={!isAdmin && !isManager}
                               >
-                                Approve
+                                Confirm
                               </button>
                               {isAdmin && (
                                 <button
                                   type="button"
                                   className="icon-button"
-                                  aria-label={`Assign artist to ${request.id}`}
-                                  onClick={() => setAssigning(request)}
+                                  aria-label={`Assign to ${booking.id}`}
+                                  onClick={() =>
+                                    setAssigning({
+                                      id: booking.id,
+                                      venue: booking.target_id,
+                                      date: booking.event_date,
+                                    })
+                                  }
                                 >
                                   <Icon name="mic" size={16} />
                                 </button>
                               )}
                             </>
                           )}
-                          {status === "Approved" && (
+                          {status === "confirmed" && (
                             <button
                               type="button"
                               className="text-link text-link--small"
-                              onClick={() => setAssigning(request)}
+                              onClick={() =>
+                                setAssigning({
+                                  id: booking.id,
+                                  venue: booking.target_id,
+                                  date: booking.event_date,
+                                })
+                              }
                               disabled={!isAdmin}
                             >
-                              Assign artist
+                              Assign
                               <Icon name="plus" size={13} />
                             </button>
                           )}
@@ -439,17 +518,21 @@ export function AdminDashboard({
                     </tr>
                   );
                 })}
+                {productionBoard.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="table-empty">
+                      No requests in this state. The desk is clear.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
-            {filteredRequests.length === 0 && (
-              <div className="table-empty">
-                No requests in this state. The desk is clear.
-              </div>
-            )}
-          </div>
-          <div className="requests-footer">
-            <span>Showing {filteredRequests.length} of {venueRequests.length} requests</span>
-            <span>Response target · under 4 working hours</span>
+            <div className="requests-footer">
+              <span>
+                Showing {productionBoard.length} upcoming
+              </span>
+              <span>Response target · under 4 working hours</span>
+            </div>
           </div>
         </section>
 
@@ -460,16 +543,25 @@ export function AdminDashboard({
                 <span className="eyebrow">Talent desk</span>
                 <h2>Assignment log</h2>
               </div>
-              <button type="button" className="text-link text-link--small" onClick={() => setToast("Full assignment log opened.")}>
+              <button
+                type="button"
+                className="text-link text-link--small"
+                onClick={() => setToast("Full assignment log opened.")}
+              >
                 Full log
                 <Icon name="arrow-up-right" size={14} />
               </button>
             </div>
             <div className="assignment-list">
               {assignments.slice(0, 6).map((entry, index) => (
-                <article key={`${entry.title}-${index}`} className="assignment-row">
+                <article
+                  key={`${entry.title}-${index}`}
+                  className="assignment-row"
+                >
                   <div className="assignment-row__rail">
-                    <i className={`assignment-mark assignment-mark--${entry.kind.toLowerCase()}`} />
+                    <i
+                      className={`assignment-mark assignment-mark--${entry.kind.toLowerCase()}`}
+                    />
                     {index < Math.min(assignments.length, 6) - 1 && <span />}
                   </div>
                   <div className="assignment-row__copy">
@@ -481,6 +573,9 @@ export function AdminDashboard({
                   </div>
                 </article>
               ))}
+              {assignments.length === 0 && (
+                <div className="table-empty">No assignments yet.</div>
+              )}
             </div>
           </section>
 
@@ -488,51 +583,14 @@ export function AdminDashboard({
             <div className="panel__head">
               <div>
                 <span className="eyebrow">CRM</span>
-                <h2>Lead approvals</h2>
+                <h2>Lead conversions</h2>
               </div>
-              <span className="panel__count">₹9.3L pipeline</span>
+              <span className="panel__count">{metrics?.leadConversion ?? 0}%</span>
             </div>
             <div className="lead-list">
-              {clientLeads.map((lead) => {
-                const status = leadState[lead.id];
-                return (
-                  <article key={lead.id} className={`lead-row ${status === "Approved" ? "is-approved" : ""}`}>
-                    <div className="lead-row__head">
-                      <div>
-                        <span>{lead.id} · {lead.source}</span>
-                        <h3>{lead.name}</h3>
-                      </div>
-                      <strong>{formatINR(lead.value)}</strong>
-                    </div>
-                    <p>{lead.event}</p>
-                    {status === "Pending" ? (
-                      <div className="lead-row__actions">
-                        <button
-                          type="button"
-                          className="button button--ink button--tiny"
-                          onClick={() => leadAction(lead.id, "Approved", `${lead.id} approved for the booking desk.`)}
-                          disabled={!isAdmin && !isManager}
-                        >
-                          Approve lead
-                        </button>
-                        <button
-                          type="button"
-                          className="button button--ghost button--tiny"
-                          onClick={() => leadAction(lead.id, "On hold", `${lead.id} moved to nurture.`)}
-                          disabled={!isAdmin && !isManager}
-                        >
-                          Nurture
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="lead-row__resolved">
-                        <span className="top-status"><i /> {status}</span>
-                        <button type="button" className="text-link text-link--small">Open CRM</button>
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
+              <div className="table-empty">
+                Lead conversion is calculated from confirmed bookings vs total bookings in Supabase.
+              </div>
             </div>
           </section>
         </div>
@@ -543,15 +601,25 @@ export function AdminDashboard({
               <span className="eyebrow">Master calendar</span>
               <h2>Event management</h2>
               <p className="panel__sub">
-                Publish, hold and inspect every public night from one ledger.
+                Upcoming bookings from the Supabase database.
               </p>
             </div>
             <div className="month-switch">
-              <button type="button" className="icon-button" onClick={() => setCursor(new Date(year, month - 1, 1))} aria-label="Previous month">
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => setCursor(new Date(year, month - 1, 1))}
+                aria-label="Previous month"
+              >
                 <Icon name="chevron-left" size={17} />
               </button>
               <strong>{monthNames[month]} {year}</strong>
-              <button type="button" className="icon-button" onClick={() => setCursor(new Date(year, month + 1, 1))} aria-label="Next month">
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => setCursor(new Date(year, month + 1, 1))}
+                aria-label="Next month"
+              >
                 <Icon name="chevron-right" size={17} />
               </button>
             </div>
@@ -564,24 +632,35 @@ export function AdminDashboard({
               </div>
               <div className="admin-calendar__grid">
                 {cells.map((cell, index) => {
-                  const key = dateKey(cell.date);
-                  const events = publicEvents.filter((event) => event.date === key);
+                  const key = `${cell.date.getFullYear()}-${String(
+                    cell.date.getMonth() + 1
+                  ).padStart(2, "0")}-${String(cell.date.getDate()).padStart(2, "0")}`;
+                  const dayEvents = productionBoard.filter(
+                    (e) => e.eventDate === key
+                  );
                   return (
                     <button
                       key={`${key}-${index}`}
                       type="button"
                       className={`admin-day ${!cell.current ? "is-outside" : ""} ${
                         key === selectedDate ? "is-selected" : ""
-                      } ${key === todayKey ? "is-today" : ""}`}
+                      }`}
                       onClick={() => {
                         setSelectedDate(key);
-                        if (!cell.current) setCursor(new Date(cell.date.getFullYear(), cell.date.getMonth(), 1));
+                        if (!cell.current)
+                          setCursor(
+                            new Date(
+                              cell.date.getFullYear(),
+                              cell.date.getMonth(),
+                              1
+                            )
+                          );
                       }}
                     >
                       <span className="admin-day__num">{cell.date.getDate()}</span>
-                      {events.map((event) => (
+                      {dayEvents.map((event) => (
                         <span key={event.id} className="admin-day__event">
-                          <i className={listed.has(event.id) ? "is-live" : "is-hidden"} />
+                          <i className="is-live" />
                           {event.title}
                         </span>
                       ))}
@@ -593,27 +672,40 @@ export function AdminDashboard({
 
             <aside className="admin-calendar__side">
               <span className="eyebrow">Selected · {selectedLabel}</span>
-              {selectedEvents.length ? (
-                selectedEvents.map((event) => (
+              {dayEventsForSelected.length > 0 ? (
+                dayEventsForSelected.map((event) => (
                   <article key={event.id} className="calendar-manage-card">
                     <div className="calendar-manage-card__image">
-                      <Image src={event.image} alt="" fill sizes="300px" style={{ objectFit: "cover" }} />
-                      <span className={listed.has(event.id) ? "is-live" : ""}>
-                        {listed.has(event.id) ? "Listed publicly" : "Hidden"}
+                      <span className="is-live">
+                        {event.title.slice(0, 1).toUpperCase()}
                       </span>
                     </div>
                     <h3>{event.title}</h3>
-                    <p>{event.time} · {event.venue}</p>
+                    <p>{event.time} · {event.detail}</p>
                     <div className="calendar-manage-card__stats">
-                      <div><span>Status</span><strong>{event.status}</strong></div>
-                      <div><span>Artists</span><strong>{event.artists.length}</strong></div>
+                      <div>
+                        <span>Status</span>
+                        <strong>{event.status}</strong>
+                      </div>
+                      <div>
+                        <span>Type</span>
+                        <strong>{event.detail.split(" · ")[0]}</strong>
+                      </div>
                     </div>
                     <button
                       type="button"
-                      className={`toggle-row ${listed.has(event.id) ? "is-on" : ""}`}
+                      className={`toggle-row ${
+                        listed.has(event.id) ? "is-on" : ""
+                      }`}
                       onClick={() => {
                         toggleListed(event.id);
-                        setToast(`${event.title} ${listed.has(event.id) ? "hidden from" : "listed on"} the public calendar.`);
+                        setToast(
+                          `${event.title} ${
+                            listed.has(event.id)
+                              ? "hidden from"
+                              : "listed on"
+                          } the calendar.`
+                        );
                       }}
                       disabled={!isAdmin}
                     >
@@ -635,9 +727,14 @@ export function AdminDashboard({
               ) : (
                 <div className="calendar-empty">
                   <span className="eyebrow">Open date</span>
-                  <h3>No public event.</h3>
-                  <p>A clean night. Use it for a private hold or a site visit.</p>
-                  <button type="button" className="button button--line button--small" onClick={() => setToast("Internal hold added for the selected date.")} disabled={!isAdmin}>
+                  <h3>No bookings on this date.</h3>
+                  <p>Select a date with upcoming bookings to manage it.</p>
+                  <button
+                    type="button"
+                    className="button button--line button--small"
+                    onClick={() => setToast("Internal hold added.")}
+                    disabled={!isAdmin}
+                  >
                     Add internal hold
                     <Icon name="plus" size={14} />
                   </button>
@@ -677,7 +774,11 @@ export function AdminDashboard({
                         {editingRole?.id === profile.id ? (
                           <select
                             value={editingRole.role}
-                            onChange={(event) => setEditingRole({ id: profile.id, role: event.target.value as UserRole })}
+                            onChange={(event) =>
+                              setEditingRole({
+                                id: profile.id,
+                                role: event.target.value as UserRole,
+                              })}
                             disabled={roleSaving}
                           >
                             <option value="admin">Admin</option>
@@ -686,7 +787,8 @@ export function AdminDashboard({
                           </select>
                         ) : (
                           <span className={`role-badge role-badge--${profile.role}`}>
-                            {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
+                            {profile.role.charAt(0).toUpperCase() +
+                              profile.role.slice(1)}
                           </span>
                         )}
                       </td>
@@ -696,8 +798,13 @@ export function AdminDashboard({
                             <button
                               type="button"
                               className="text-link text-link--small"
-                              onClick={() => handleRoleChange(profile.id, profile.role)}
-                              disabled={roleSaving || profile.id === session?.profile?.id}
+                              onClick={() =>
+                                handleRoleChange(profile.id, profile.role)
+                              }
+                              disabled={
+                                roleSaving ||
+                                profile.id === session?.profile?.id
+                              }
                             >
                               Edit
                             </button>
@@ -725,6 +832,13 @@ export function AdminDashboard({
                       </td>
                     </tr>
                   ))}
+                  {profiles.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="table-empty">
+                        No team members in Supabase profiles table.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -732,7 +846,12 @@ export function AdminDashboard({
         )}
       </div>
 
-      <Modal open={Boolean(assigning)} onClose={() => setAssigning(null)} size="small" labelledBy="assign-title">
+      <Modal
+        open={Boolean(assigning)}
+        onClose={() => setAssigning(null)}
+        size="small"
+        labelledBy="assign-title"
+      >
         {assigning && (
           <div className="assign-modal">
             <span className="eyebrow">Talent assignment</span>
@@ -743,7 +862,10 @@ export function AdminDashboard({
             </p>
             <label className="field">
               <span className="field__label">Artist</span>
-              <select value={assignArtist} onChange={(event) => setAssignArtist(event.target.value)}>
+              <select
+                value={assignArtist}
+                onChange={(event) => setAssignArtist(event.target.value)}
+              >
                 {artists.map((artist) => (
                   <option key={artist.id} value={artist.id}>
                     {artist.name} · {artist.category} · {artist.feeLabel}
@@ -752,11 +874,21 @@ export function AdminDashboard({
               </select>
             </label>
             <div className="assign-modal__summary">
-              <div><span>Room value</span><strong>{formatINR(assigning.budget)}</strong></div>
-              <div><span>Capacity</span><strong>{assigning.capacity} guests</strong></div>
-              <div><span>Client</span><strong>{assigning.client}</strong></div>
+              <div>
+                <span>Room value</span>
+                <strong>{formatINR(0)}</strong>
+              </div>
+              <div>
+                <span>Client</span>
+                <strong>{assigning.id}</strong>
+              </div>
             </div>
-            <button type="button" className="button button--ink button--full" onClick={confirmAssignment} disabled={!isAdmin}>
+            <button
+              type="button"
+              className="button button--ink button--full"
+              onClick={confirmAssignment}
+              disabled={!isAdmin}
+            >
               Confirm assignment
               <Icon name="check" size={16} />
             </button>
@@ -764,13 +896,18 @@ export function AdminDashboard({
         )}
       </Modal>
 
-      <Modal open={teamTab} onClose={() => setTeamTab(false)} size="large" labelledBy="team-title">
+      <Modal
+        open={teamTab}
+        onClose={() => setTeamTab(false)}
+        size="large"
+        labelledBy="team-title"
+      >
         <div className="team-modal">
           <span className="eyebrow">Team & Role Management</span>
           <h2 id="team-title">Team Members</h2>
           <p>
-            Invite new team members by email and assign them an admin or manager
-            role. Artists are created through the public registration form.
+            Manage Supabase profiles and assign admin or manager roles. Artists
+            are created through the public registration form.
           </p>
           <div className="form-grid">
             <label className="field">
@@ -789,10 +926,18 @@ export function AdminDashboard({
             </label>
           </div>
           <div className="modal-actions">
-            <button type="button" className="button button--ghost" onClick={() => setTeamTab(false)}>
+            <button
+              type="button"
+              className="button button--ghost"
+              onClick={() => setTeamTab(false)}
+            >
               Cancel
             </button>
-            <button type="button" className="button button--ink" disabled={!isAdmin}>
+            <button
+              type="button"
+              className="button button--ink"
+              disabled={!isAdmin}
+            >
               Invite team member
             </button>
           </div>
@@ -808,29 +953,69 @@ export function AdminDashboard({
               <tbody>
                 {profiles.map((profile) => (
                   <tr key={profile.id}>
-                    <td><strong>{profile.full_name || "Unnamed user"}</strong></td>
+                    <td>
+                      <strong>{profile.full_name || "Unnamed user"}</strong>
+                    </td>
                     <td>{profile.email}</td>
                     <td>
                       <span className={`role-badge role-badge--${profile.role}`}>
-                        {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}
+                        {profile.role.charAt(0).toUpperCase() +
+                          profile.role.slice(1)}
                       </span>
                     </td>
                   </tr>
                 ))}
+                {profiles.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="table-empty">
+                      No team members yet.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
       </Modal>
+    </>
+  );
 
+  return (
+    <DashboardShell
+      role="Admin"
+      workspace="Control room"
+      userName={session?.profile?.full_name || "Studio User"}
+      userMeta={`${userRole.charAt(0).toUpperCase() + userRole.slice(1)} · Kalakaar Studios`}
+      initials={session?.profile?.full_name?.split(" ").map((n) => n[0]).join("") || "SS"}
+      navItems={[
+        ...navItems,
+        ...(isAdmin
+          ? [{ label: "Team & Roles", href: "#team-roles", icon: "users" as const }]
+          : []),
+      ]}
+      current="Overview"
+      onClientView={onClientView}
+      topRight={
+        <>
+          <span className="top-status top-status--admin">
+            <i /> {session?.profile?.role}
+          </span>
+          <button
+            type="button"
+            className="text-link text-link--small"
+            onClick={() => setTeamTab(true)}
+          >
+            Manage Team
+          </button>
+        </>
+      }
+    >
+      {session && <AdminSessionGate session={session} />}
+      {pageContent}
       <Toast message={toast} onDone={() => setToast(null)} />
     </DashboardShell>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/* Session gate - redirect unauthenticated users                      */
-/* ------------------------------------------------------------------ */
 
 function AdminSessionGate({ session }: { session: AuthSession | null }) {
   if (!session || !session.isAuthenticated) {

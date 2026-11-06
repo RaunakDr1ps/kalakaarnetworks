@@ -39,8 +39,14 @@ create table if not exists bookings (
   target_id text not null,
   event_date date not null,
   status text default 'new',
+  booking_amount integer,
+  payment_status text check (payment_status in ('pending', 'paid', 'failed')) default 'pending',
   created_at timestamptz default now()
 );
+
+-- Add missing columns to existing bookings table if they were created before this schema update
+alter table bookings add column if not exists booking_amount integer;
+alter table bookings add column if not exists payment_status text check (payment_status in ('pending', 'paid', 'failed')) default 'pending';
 
 -- Optional: enable realtime subscriptions on the core tables
 -- alter publication supabase_realtime add table artists, venues, bookings;

@@ -463,3 +463,227 @@ export async function insertArtistApplication(application: {
     return { success: false, data: null, error };
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Admin metrics / charts / production board                          */
+/* ------------------------------------------------------------------ */
+
+export interface AdminMetrics {
+  bookableValue: number;
+  collected: number;
+  openVenueRequests: number;
+  leadConversion: number;
+  totalBookings: number;
+  confirmedBookings: number;
+}
+
+export interface MonthlyRevenue {
+  month: string;
+  booked: number;
+  collected: number;
+}
+
+export interface ProductionBoardItem {
+  id: string;
+  time: string;
+  title: string;
+  detail: string;
+  status: string;
+  icon: string;
+  eventDate: string;
+  client_name: string;
+  type: string;
+  target_id: string;
+  event_date: string;
+}
+
+export async function fetchAdminMetrics(): Promise<AdminMetrics> {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      bookableValue: 0,
+      collected: 0,
+      openVenueRequests: 0,
+      leadConversion: 0,
+      totalBookings: 0,
+      confirmedBookings: 0,
+    };
+  }
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("status, booking_amount, payment_status, event_date");
+    if (error) {
+      console.warn("[supabase] admin metrics fetch failed", error);
+      return {
+        bookableValue: 0,
+        collected: 0,
+        openVenueRequests: 0,
+        leadConversion: 0,
+        totalBookings: 0,
+        confirmedBookings: 0,
+      };
+    }
+    const bookings = (data ?? []) as Array<{
+      status: string;
+      booking_amount: number | null;
+      payment_status: string | null;
+      event_date: string;
+    }>;
+
+    const totalBookings = bookings.length;
+    const confirmedBookings = bookings.filter(
+      (b) => b.status === "confirmed" || b.status === "approved"
+    ).length;
+
+    const bookableValue = bookings.reduce(
+      (sum, b) => sum + (Number(b.booking_amount) || 0),
+      0
+    );
+
+    const collected = bookings.reduce(
+      (sum, b) =>
+        sum + (b.payment_status === "paid" ? Number(b.booking_amount) || 0 : 0),
+      0
+    );
+
+    const openVenueRequests = bookings.filter(
+      (b) => b.status === "pending"
+    ).length;
+
+    const leadConversion =
+      totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 0;
+
+    return {
+      bookableValue,
+      collected,
+      openVenueRequests,
+      leadConversion,
+      totalBookings,
+      confirmedBookings,
+    };
+  } catch (error) {
+    console.warn("[supabase] admin metrics fetch error", error);
+    return {
+      bookableValue: 0,
+      collected: 0,
+      openVenueRequests: 0,
+      leadConversion: 0,
+      totalBookings: 0,
+      confirmedBookings: 0,
+    };
+  }
+}
+
+export async function fetchMonthlyRevenue(): Promise<MonthlyRevenue[]> {
+  if (!isSupabaseConfigured || !supabase) {
+    return [];
+  }
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("status, booking_amount, payment_status, event_date, created_at");
+    if (error) {
+      console.warn("[supabase] monthly revenue fetch failed", error);
+      return [];
+    }
+    const bookings = (data ?? []) as Array<{
+      status: string;
+      booking_amount: number | null;
+      payment_status: string | null;
+      event_date: string;
+      created_at: string;
+    }>;
+
+    const monthly: Record<string, { booked: number; collected: number }> = {};
+
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = d.toLocaleDateString("en-IN", { month: "short" });
+      monthly[key] = { booked: 0, collected: 0 };
+    }
+
+    bookings.forEach((b) => {
+      const eventDate = new Date(b.event_date);
+      const key = eventDate.toLocaleDateString("en-IN", { month: "short" });
+      const amount = Number(b.booking_amount) || 0;
+      if (monthly[key]) {
+        monthly[key].booked += amount;
+        if (b.payment_status === "paid") {
+          monthly[key].collected += amount;
+        }
+      }
+    });
+
+    return Object.entries(monthly).map(([month, vals]) => ({
+      month,
+      booked: vals.booked,
+      collected: vals.collected,
+    }));
+  } catch (error) {
+    console.warn("[supabase] monthly revenue fetch error", error);
+    return [];
+  }
+}
+
+export async function fetchProductionBoard(): Promise<ProductionBoardItem[]> {
+  if (!isSupabaseConfigured || !supabase) {
+    return [];
+  }
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("id, client_name, target_id, type, event_date, status")
+      .gte("event_date", today)
+      .order("event_date", { ascending: true })
+      .limit(8);
+    if (error) {
+      console.warn("[supabase] production board fetch failed", error);
+      return [];
+    }
+    const bookings = (data ?? []) as Array<{
+      id: string;
+      client_name: string;
+      target_id: string;
+      type: string;
+      event_date: string;
+      status: string;
+    }>;
+
+    const iconMap: Record<string, string> = {
+      artist: "mic",
+      venue: "building",
+    };
+
+    const statusMap: Record<string, string> = {
+      new: "Pending",
+      confirmed: "Confirmed",
+      pending: "Pending",
+      approved: "Approved",
+      declined: "Declined",
+    };
+
+    return bookings.map((b) => {
+      const eventDate = new Date(b.event_date);
+      const hours = eventDate.getHours().toString().padStart(2, "0");
+      const minutes = eventDate.getMinutes().toString().padStart(2, "0");
+      return {
+        id: b.id,
+        time: `${hours}:${minutes}`,
+        title: b.client_name,
+        detail: `${b.type === "artist" ? "Artist" : "Venue"} · ${b.target_id}`,
+        status: statusMap[b.status] || b.status,
+        icon: iconMap[b.type] || "ticket",
+        eventDate: b.event_date,
+        client_name: b.client_name,
+        type: b.type,
+        target_id: b.target_id,
+        event_date: b.event_date,
+      };
+    });
+  } catch (error) {
+    console.warn("[supabase] production board fetch error", error);
+    return [];
+  }
+}
