@@ -8,10 +8,15 @@ import type { Artist, Venue } from "@/data/mock";
 export interface SupabaseArtist {
   id: string;
   name: string;
+  stage_name: string | null;
   category: string;
-  bio: string | null;
+  location: string | null;
+  travel_availability: string | null;
   rate: number | null;
-  image_url: string | null;
+  description: string | null;
+  portfolio_links: string | null;
+  contact_email: string;
+  contact_phone: string | null;
   availability_status: string | null;
   created_at: string | null;
 }
@@ -273,12 +278,12 @@ function mapSupabaseArtist(row: SupabaseArtist): Artist {
     id: row.id,
     name: row.name,
     category: (row.category as Artist["category"]) || "Music",
-    discipline: row.bio ?? "Performer",
-    city: "Patna",
+    discipline: row.description ?? "Performer",
+    city: row.location ?? "Patna",
     fee,
     feeLabel: `₹${Math.round(fee / 100000)}L`,
-    image: row.image_url ?? "/images/event-08.png",
-    blurb: row.bio ?? "Available for bookings through Kalakaar Studios.",
+    image: row.portfolio_links ?? "/images/event-08.png",
+    blurb: row.description ?? "Available for bookings through Kalakaar Studios.",
     languages: ["Hindi", "English"],
     setLength: "60 min",
     draw: "1,000 cap",
@@ -685,5 +690,47 @@ export async function fetchProductionBoard(): Promise<ProductionBoardItem[]> {
   } catch (error) {
     console.warn("[supabase] production board fetch error", error);
     return [];
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Artist applications review desk                                    */
+/* ------------------------------------------------------------------ */
+
+export async function fetchPendingArtists(): Promise<SupabaseArtist[]> {
+  if (!isSupabaseConfigured || !supabase) {
+    return [];
+  }
+  try {
+    const { data, error } = await supabase
+      .from("artists")
+      .select("*")
+      .eq("availability_status", "pending")
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.warn("[supabase] pending artists fetch failed", error);
+      return [];
+    }
+    return (data ?? []) as SupabaseArtist[];
+  } catch (error) {
+    console.warn("[supabase] pending artists fetch error", error);
+    return [];
+  }
+}
+
+export async function updateArtistAvailability(artistId: string, status: "available" | "rejected") {
+  if (!isSupabaseConfigured || !supabase) {
+    return { success: false, error: new Error("Supabase is not configured.") };
+  }
+  try {
+    const { data, error } = await supabase
+      .from("artists")
+      .update({ availability_status: status })
+      .eq("id", artistId)
+      .select()
+      .single();
+    return { success: !error, data, error };
+  } catch (error) {
+    return { success: false, data: null, error };
   }
 }

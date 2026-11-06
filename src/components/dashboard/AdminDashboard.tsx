@@ -8,10 +8,13 @@ import {
   fetchArtists,
   fetchProfiles,
   updateProfileRole,
+  fetchPendingArtists,
+  updateArtistAvailability,
   type AdminMetrics,
   type MonthlyRevenue,
   type ProductionBoardItem,
   type SupabaseProfile,
+  type SupabaseArtist,
   type AuthSession,
   type UserRole,
 } from "@/lib/supabase-data";
@@ -73,6 +76,15 @@ export function AdminDashboard({
   const [productionBoard, setProductionBoard] = useState<ProductionBoardItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<{ id: string; title: string; time: string; read: boolean }[]>([
+    { id: "n1", title: "New Artist Application received", time: "10:15 AM", read: false },
+    { id: "n2", title: "New Venue Booking submitted", time: "09:42 AM", read: false },
+    { id: "n3", title: "Payout request approved", time: "Yesterday", read: true },
+  ]);
+
+  const [pendingArtists, setPendingArtists] = useState<SupabaseArtist[]>([]);
+
   const userRole = session?.profile?.role ?? "artist";
   const isAdmin = userRole === "admin";
   const isManager = userRole === "manager";
@@ -80,13 +92,14 @@ export function AdminDashboard({
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      const [fetchedArtists, fetchedProfiles, fetchedMetrics, fetchedMonthly, fetchedBoard] =
+      const [fetchedArtists, fetchedProfiles, fetchedMetrics, fetchedMonthly, fetchedBoard, fetchedPending] =
         await Promise.all([
           fetchArtists(),
           fetchProfiles(),
           fetchAdminMetrics(),
           fetchMonthlyRevenue(),
           fetchProductionBoard(),
+          fetchPendingArtists(),
         ]);
       if (!cancelled) {
         setArtists(fetchedArtists);
@@ -94,6 +107,7 @@ export function AdminDashboard({
         setMetrics(fetchedMetrics);
         setMonthlyRevenue(fetchedMonthly);
         setProductionBoard(fetchedBoard);
+        setPendingArtists(fetchedPending);
         if (fetchedArtists.length > 0) setAssignArtist(fetchedArtists[0].id);
         setLoading(false);
       }
@@ -174,6 +188,32 @@ export function AdminDashboard({
       setToast("Failed to update role.");
     }
     setEditingRole(null);
+  };
+
+  const approveArtist = async (id: string) => {
+    const result = await updateArtistAvailability(id, "available");
+    if (result.success) {
+      setPendingArtists((current) => current.filter((a) => a.id !== id));
+      setToast("Artist application approved.");
+    } else {
+      setToast("Failed to approve artist.");
+    }
+  };
+
+  const rejectArtist = async (id: string) => {
+    const result = await updateArtistAvailability(id, "rejected");
+    if (result.success) {
+      setPendingArtists((current) => current.filter((a) => a.id !== id));
+      setToast("Artist application rejected.");
+    } else {
+      setToast("Failed to reject artist.");
+    }
+  };
+
+  const markNotificationRead = (id: string) => {
+    setNotifications((current) =>
+      current.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
   };
 
   const maxRevenue = Math.max(...monthlyRevenue.map((m) => m.booked), 24);
@@ -744,6 +784,95 @@ export function AdminDashboard({
           </div>
         </section>
 
+        {/* Artist Applications Review Desk */}
+        <section className="panel artist-applications-panel" id="artist-applications">
+          <div className="panel__head">
+            <div>
+              <span className="eyebrow">Talent onboarding</span>
+              <h2>Artist Applications</h2>
+            </div>
+            <span className="panel__count">{pendingArtists.length} pending</span>
+          </div>
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Name / Stage Name</th>
+                  <th>Category</th>
+                  <th>Location</th>
+                  <th>Rate</th>
+                  <th>Contact</th>
+                  <th>Portfolio</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendingArtists.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="table-empty">
+                      No pending artist applications.
+                    </td>
+                  </tr>
+                ) : (
+                  pendingArtists.map((artist) => (
+                    <tr key={artist.id}>
+                      <td>
+                        <strong>{artist.name}</strong>
+                        {artist.stage_name && (
+                          <span className="table-sub">{artist.stage_name}</span>
+                        )}
+                      </td>
+                      <td>{artist.category}</td>
+                      <td>{artist.location}</td>
+                      <td>
+                        <strong>{formatINR(artist.rate ?? 0)}</strong>
+                      </td>
+                      <td>
+                        <span>{artist.contact_email}</span>
+                        {artist.contact_phone && (
+                          <span className="table-sub">{artist.contact_phone}</span>
+                        )}
+                      </td>
+                      <td>
+                        {artist.portfolio_links ? (
+                          <a
+                            href={artist.portfolio_links}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-link text-link--small"
+                          >
+                            View links
+                          </a>
+                        ) : (
+                          <span className="table-sub">—</span>
+                        )}
+                      </td>
+                      <td>
+                        <div className="table-actions">
+                          <button
+                            type="button"
+                            className="button button--ink button--tiny"
+                            onClick={() => approveArtist(artist.id)}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            className="button button--ghost button--tiny"
+                            onClick={() => rejectArtist(artist.id)}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         {isAdmin && (
           <section className="panel team-roles-panel" id="team-roles">
             <div className="panel__head">
@@ -977,6 +1106,47 @@ export function AdminDashboard({
           </div>
         </div>
       </Modal>
+
+      {/* Notification Drawer */}
+      {notificationsOpen && (
+        <div className="notification-drawer-overlay" onClick={() => setNotificationsOpen(false)} />
+      )}
+      <Modal open={notificationsOpen} onClose={() => setNotificationsOpen(false)} size="medium" labelledBy="notification-title">
+        <div className="notification-drawer">
+          <div className="notification-drawer__head">
+            <span className="eyebrow">Notifications</span>
+            <h2 id="notification-title">Activity Log</h2>
+            <button
+              type="button"
+              className="text-link text-link--small"
+              onClick={() => setNotificationsOpen(false)}
+            >
+              Done
+            </button>
+          </div>
+          <div className="notification-list">
+            {notifications.length === 0 ? (
+              <div className="table-empty">No recent activity.</div>
+            ) : (
+              notifications.map((n) => (
+                <article
+                  key={n.id}
+                  className={`notification-item ${n.read ? "notification-item--read" : ""}`}
+                  onClick={() => markNotificationRead(n.id)}
+                >
+                  <div className="notification-item__mark">
+                    <i className={`notification-dot ${n.read ? "notification-dot--read" : "notification-dot--unread"}`} />
+                  </div>
+                  <div className="notification-item__body">
+                    <span className="notification-item__title">{n.title}</span>
+                    <span className="notification-item__time">{n.time}</span>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+        </div>
+      </Modal>
     </>
   );
 
@@ -984,9 +1154,19 @@ export function AdminDashboard({
     <DashboardShell
       role="Admin"
       workspace="Control room"
-      userName={session?.profile?.full_name || "Studio User"}
+      userName={
+        session?.profile?.full_name ||
+        session?.user?.email ||
+        "Admin User"
+      }
       userMeta={`${userRole.charAt(0).toUpperCase() + userRole.slice(1)} · Kalakaar Studios`}
-      initials={session?.profile?.full_name?.split(" ").map((n) => n[0]).join("") || "SS"}
+      initials={
+        session?.profile?.full_name
+          ? session.profile.full_name.split(" ").map((n) => n[0]).join("")
+          : session?.user?.email
+            ? session.user.email.charAt(0).toUpperCase()
+            : "AU"
+      }
       navItems={[
         ...navItems,
         ...(isAdmin
@@ -1006,6 +1186,17 @@ export function AdminDashboard({
             onClick={() => setTeamTab(true)}
           >
             Manage Team
+          </button>
+          <button
+            type="button"
+            className="notification-bell"
+            onClick={() => setNotificationsOpen(!notificationsOpen)}
+            aria-label="Notifications"
+          >
+            <Icon name="bell" size={17} />
+            {notifications.some((n) => !n.read) && (
+              <span className="notification-badge" />
+            )}
           </button>
         </>
       }
