@@ -18,6 +18,7 @@ import {
   type AuthSession,
   type UserRole,
 } from "@/lib/supabase-data";
+import { supabase } from "@/lib/supabase";
 import { monthMatrix, monthNames, weekdayLabels } from "@/lib/date";
 import { DashboardShell } from "./DashboardShell";
 import { Icon, type IconName } from "@/components/ui/Icon";
@@ -37,6 +38,12 @@ const formatINR = (value: number) =>
     currency: "INR",
     maximumFractionDigits: 0,
   }).format(value);
+
+const sanitizePortfolioUrl = (url: string | null | undefined): string => {
+  if (!url) return "#";
+  if (/^https?:\/\//i.test(url)) return url;
+  return `https://${url}`;
+};
 
 const navItems = [
   { label: "Overview", href: "#admin-overview", icon: "grid" as const },
@@ -191,11 +198,24 @@ export function AdminDashboard({
   };
 
   const approveArtist = async (id: string) => {
-    const result = await updateArtistAvailability(id, "available");
-    if (result.success) {
+    if (!supabase) {
+      setToast("Supabase not configured.");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("artists")
+        .update({ availability_status: "available" })
+        .eq("id", id);
+      if (error) {
+        console.error("[supabase] approve artist error:", error);
+        setToast("Failed to approve artist.");
+        return;
+      }
       setPendingArtists((current) => current.filter((a) => a.id !== id));
-      setToast("Artist application approved.");
-    } else {
+      setToast("Artist approved successfully.");
+    } catch (error) {
+      console.error("[supabase] approve artist exception:", error);
       setToast("Failed to approve artist.");
     }
   };
@@ -836,7 +856,7 @@ export function AdminDashboard({
                       <td>
                         {artist.portfolio_links ? (
                           <a
-                            href={artist.portfolio_links}
+                            href={sanitizePortfolioUrl(artist.portfolio_links)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-link text-link--small"
@@ -1157,7 +1177,7 @@ export function AdminDashboard({
       userName={
         session?.profile?.full_name ||
         session?.user?.email ||
-        "Admin User"
+        "Raunak Sharma"
       }
       userMeta={`${userRole.charAt(0).toUpperCase() + userRole.slice(1)} · Kalakaar Studios`}
       initials={
@@ -1165,7 +1185,7 @@ export function AdminDashboard({
           ? session.profile.full_name.split(" ").map((n) => n[0]).join("")
           : session?.user?.email
             ? session.user.email.charAt(0).toUpperCase()
-            : "AU"
+            : "RS"
       }
       navItems={[
         ...navItems,

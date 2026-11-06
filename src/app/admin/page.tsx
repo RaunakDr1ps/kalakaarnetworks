@@ -29,8 +29,8 @@ export default function AdminPage() {
 
   const handleLogin = () => {
     setSession({
-      user: { id: "00000000-0000-0000-0000-000000000001", email: "aarav@kalakaarstudios.in" },
-      profile: { id: "00000000-0000-0000-0000-000000000001", email: "aarav@kalakaarstudios.in", role: "admin", full_name: "Aarav Sinha", created_at: new Date().toISOString() },
+      user: { id: "00000000-0000-0000-0000-000000000001", email: "raunak@kalakaarstudios.in" },
+      profile: { id: "00000000-0000-0000-0000-000000000001", email: "raunak@kalakaarstudios.in", role: "admin", full_name: "Raunak Sharma", created_at: new Date().toISOString() },
       isAuthenticated: true,
       isAdmin: true,
       isManager: false,
